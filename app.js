@@ -727,14 +727,12 @@ function buildCalendar() {
       cell.classList.add('future');
     }
 
-    if (!isFuture) {
-      cell.addEventListener('click', () => {
-        if (rating) {
-          openDayDetail(key, rating);
-        } else {
-          openRateDay(key);
-        }
-      });
+    if (rating) {
+      cell.addEventListener('click', () => openDayDetail(key, rating));
+    } else if (isToday) {
+      cell.addEventListener('click', () => openRateDay(key));
+    } else if (!isFuture) {
+      cell.style.cursor = 'default';
     }
 
     grid.appendChild(cell);
@@ -875,7 +873,9 @@ function openDayDetail(key, rating) {
     container.appendChild(row);
   });
 
-  document.getElementById('edit-rating-btn').dataset.key = key;
+  const editBtn = document.getElementById('edit-rating-btn');
+  editBtn.dataset.key = key;
+  editBtn.style.display = key === todayKey() ? '' : 'none';
   showScreen('day-detail-screen');
 }
 
