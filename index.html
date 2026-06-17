@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Reflection">
+    <meta name="theme-color" content="#f5f0eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <title>Daily Reflection</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+
+  <body>
+
+    <!-- HOME SCREEN: saying + write-about + emotion picker + nav buttons -->
+    <div id="home-screen" class="screen active">
+      <div class="card">
+
+        <div class="saying-block">
+          <p id="saying-text" class="saying"></p>
+          <div class="saying-meta">
+            <p id="saying-source" class="source"></p>
+            <div class="saying-icons">
+              <button id="write-about-btn" class="icon-btn" title="Write about this">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+              </button>
+              <button id="shuffle-btn" class="icon-btn" title="New quote">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+              <button id="browse-quotes-btn" class="icon-btn" title="Browse quotes">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="write-about-area" class="hidden">
+            <textarea id="saying-reflection-input" class="answer-input" placeholder="What does this bring up for you?"></textarea>
+            <button id="save-saying-btn" class="btn">Save reflection</button>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="emotion-section">
+          <p class="section-label">How are you feeling?</p>
+          <div class="emotion-buttons">
+            <button class="emotion-btn" data-emotion="excited">Excited</button>
+            <button class="emotion-btn" data-emotion="anxious">Anxious</button>
+            <button class="emotion-btn" data-emotion="upset">Upset</button>
+          </div>
+        </div>
+
+        <div class="home-footer">
+          <button id="archives-btn" class="icon-btn" title="Archives">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <polyline points="2,4 12,13 22,4"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- QUESTION SCREEN: one question at a time -->
+    <div id="question-screen" class="screen">
+      <div class="card">
+
+        <div class="question-meta">
+          <p id="emotion-label" class="emotion-tag"></p>
+          <p id="section-header" class="section-header hidden"></p>
+          <p id="progress-label" class="progress"></p>
+        </div>
+
+        <div class="question-body">
+          <p id="question-text" class="question"></p>
+          <p id="emotion-subtext" class="light-subtext hidden"></p>
+          <p id="question-subtext" class="light-subtext hidden"></p>
+        </div>
+
+        <textarea id="answer-input" class="answer-input" placeholder="Write whatever comes up..."></textarea>
+        <button id="next-btn" class="btn">Next</button>
+        <div class="btn-row">
+          <button id="back-question-btn" class="btn secondary">Back</button>
+          <button id="home-question-btn" class="btn secondary">Home</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DONE SCREEN -->
+    <div id="done-screen" class="screen">
+      <div class="card">
+        <div>
+          <p class="done-message">That's it for today.</p>
+          <p class="done-sub">Your reflection has been saved.</p>
+        </div>
+        <button id="another-entry-btn" class="btn">Another entry</button>
+        <div class="btn-row">
+          <button id="review-btn" class="btn secondary">Look back</button>
+          <button id="done-home-btn" class="btn secondary">Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARCHIVE SCREEN: all past entries, grouped by date -->
+    <div id="archive-screen" class="screen">
+      <div class="card">
+        <p class="section-label">Journal</p>
+        <div id="entries-list"></div>
+        <button id="archive-home-btn" class="btn secondary">Home</button>
+      </div>
+    </div>
+
+    <!-- QUOTES BROWSER: alphabetical list of sources -->
+    <div id="quotes-browser-screen" class="screen">
+      <div class="card">
+        <p class="section-label">Quotes by</p>
+        <input id="search-input" class="search-input" type="text" placeholder="Search...">
+        <div id="people-list"></div>
+        <button id="browser-home-btn" class="btn secondary">Home</button>
+      </div>
+    </div>
+
+    <!-- QUOTE VIEWER: one quote at a time with navigation -->
+    <div id="quote-viewer-screen" class="screen">
+      <div class="card">
+        <p id="viewer-source" class="viewer-source"></p>
+        <p id="viewer-text" class="saying"></p>
+        <p id="viewer-count" class="progress"></p>
+        <button id="viewer-next-btn" class="btn">Next quote</button>
+        <div class="btn-row">
+          <button id="viewer-back-btn" class="btn secondary">Back</button>
+          <button id="viewer-home-btn" class="btn secondary">Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIFE RATING: CALENDAR VIEW -->
+    <div id="rating-calendar-screen" class="screen">
+      <div class="card">
+        <div class="cal-header">
+          <button id="cal-prev-btn" class="icon-btn" title="Previous month">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <p id="cal-month-label" class="cal-month"></p>
+          <button id="cal-next-btn" class="icon-btn" title="Next month">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+        <div id="cal-grid" class="cal-grid"></div>
+        <button id="rate-today-btn" class="btn">Rate today</button>
+      </div>
+    </div>
+
+    <!-- LIFE RATING: RATE A DAY -->
+    <div id="rate-today-screen" class="screen">
+      <div class="card">
+        <div>
+          <p id="rate-today-date" class="section-label"></p>
+          <p id="rate-avg-display" class="rate-avg">—</p>
+        </div>
+        <div id="rate-areas-list" class="rate-areas"></div>
+        <button id="save-rating-btn" class="btn">Save</button>
+        <button id="rating-cal-btn" class="btn secondary">Back to calendar</button>
+      </div>
+    </div>
+
+    <!-- LIFE RATING: DAY DETAIL (read-only) -->
+    <div id="day-detail-screen" class="screen">
+      <div class="card">
+        <div>
+          <p id="detail-date" class="section-label"></p>
+          <p id="detail-avg" class="rate-avg"></p>
+        </div>
+        <div id="detail-areas-list" class="detail-areas"></div>
+        <button id="edit-rating-btn" class="btn secondary">Edit</button>
+        <button id="detail-cal-btn" class="btn secondary">Back to calendar</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION TAB BAR -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" id="tab-home" title="Home">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+          <path d="M9 21V12h6v9"/>
+        </svg>
+        <span>Home</span>
+      </button>
+      <button class="tab-btn" id="tab-rating" title="Life Rating">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+        </svg>
+        <span>Life Rating</span>
+      </button>
+      <button class="tab-btn" id="tab-three" title="Coming soon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span>Soon</span>
+      </button>
+    </nav>
+
+    <script src="app.js"></script>
+
+  </body>
+
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Daily Reflection",
+  "short_name": "Reflection",
+  "start_url": "/reflection-app/",
+  "scope": "/reflection-app/",
+  "display": "standalone",
+  "background_color": "#f5f0eb",
+  "theme_color": "#f5f0eb",
+  "icons": [
+    {
+      "src": "/reflection-app/icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,621 @@
+/* ── Base reset & font ─────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Georgia', serif;
+  background-color: #f5f0eb;
+  color: #3a3330;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px 88px;
+}
+
+/* ── Screens ───────────────────────────────────────────── */
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 480px;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ── Card ──────────────────────────────────────────────── */
+.card {
+  background: #fffdf9;
+  border-radius: 16px;
+  padding: 40px 32px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Labels & meta text ────────────────────────────────── */
+.section-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b0a39b;
+}
+
+.progress {
+  font-size: 0.78rem;
+  color: #b0a39b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Saying block ──────────────────────────────────────── */
+.saying-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saying {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  font-style: italic;
+  color: #5c4f47;
+}
+
+.saying-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.source {
+  font-size: 0.82rem;
+  color: #b0a39b;
+}
+
+.saying-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: #c4a882;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.18s;
+}
+
+.text-link:hover {
+  text-decoration-color: #c4a882;
+}
+
+/* ── Divider ───────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid #ede8e2;
+  margin: 0;
+}
+
+/* ── Home footer ───────────────────────────────────────── */
+.home-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.footer-link {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #b0a39b;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.18s;
+}
+
+.footer-link:hover {
+  color: #c4a882;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #b0a39b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.18s;
+}
+
+.icon-btn:hover {
+  color: #c4a882;
+}
+
+/* ── Emotion picker ────────────────────────────────────── */
+.emotion-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emotion-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.emotion-btn {
+  flex: 1;
+  padding: 16px 8px;
+  border: 1.5px solid #e0d8d0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: transparent;
+  color: #5c4f47;
+  transition: all 0.18s;
+}
+
+.emotion-btn:hover {
+  background: #c4a882;
+  border-color: #c4a882;
+  color: #fffdf9;
+}
+
+/* ── Question screen ───────────────────────────────────── */
+.question-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emotion-tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c4a882;
+}
+
+.section-header {
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9e8f87;
+  padding-top: 2px;
+}
+
+.question-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question {
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: #3a3330;
+}
+
+.light-subtext {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #b0a39b;
+  font-style: italic;
+}
+
+.answer-input {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid #e0d8d0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #3a3330;
+  background: #faf7f3;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.answer-input:focus {
+  border-color: #c4a882;
+}
+
+/* ── Done screen ───────────────────────────────────────── */
+.done-message {
+  font-size: 1.3rem;
+  color: #5c4f47;
+  margin-bottom: 6px;
+}
+
+.done-sub {
+  font-size: 0.88rem;
+  color: #b0a39b;
+}
+
+/* ── Archive screen ────────────────────────────────────── */
+.entry-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-header {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #ede8e2;
+  padding: 14px 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b0a39b;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: color 0.18s;
+}
+
+.entry-header:hover {
+  color: #9e8f87;
+}
+
+.entry-header::after {
+  content: '›';
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+  margin-left: 8px;
+}
+
+.entry-header.open::after {
+  transform: rotate(90deg);
+}
+
+.entry-content {
+  padding: 16px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-type-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c4a882;
+}
+
+.entry-qa {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.entry-q {
+  font-size: 0.82rem;
+  color: #b0a39b;
+  font-style: italic;
+}
+
+.entry-a {
+  font-size: 0.95rem;
+  color: #3a3330;
+  line-height: 1.5;
+}
+
+.entry-quote {
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #5c4f47;
+  line-height: 1.6;
+}
+
+.entry-reflection {
+  font-size: 0.95rem;
+  color: #3a3330;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.empty-message {
+  font-size: 0.9rem;
+  color: #b0a39b;
+  padding: 12px 0;
+}
+
+/* ── Quotes browser ────────────────────────────────────── */
+.search-input {
+  width: 100%;
+  border: 1px solid #e0d8d0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #3a3330;
+  background: #faf7f3;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #c4a882;
+}
+
+.person-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-bottom: 1px solid #ede8e2;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #5c4f47;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+
+.person-btn:first-child {
+  border-top: 1px solid #ede8e2;
+}
+
+.person-btn:hover {
+  color: #c4a882;
+}
+
+.no-results {
+  font-size: 0.88rem;
+  color: #b0a39b;
+  padding: 12px 0;
+}
+
+/* ── Quote viewer ──────────────────────────────────────── */
+.viewer-source {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b0a39b;
+}
+
+/* ── Buttons ───────────────────────────────────────────── */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #c4a882;
+  color: #fffdf9;
+  transition: background-color 0.18s;
+}
+
+.btn:hover {
+  background-color: #b39470;
+}
+
+.btn.secondary {
+  background-color: transparent;
+  color: #9e8f87;
+  border: 1px solid #e0d8d0;
+}
+
+.btn.secondary:hover {
+  background-color: #f5f0eb;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-row .btn {
+  flex: 1;
+}
+
+/* ── Utility ───────────────────────────────────────────── */
+.hidden {
+  display: none;
+}
+
+/* ── Bottom tab bar ────────────────────────────────────── */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fffdf9;
+  border-top: 1px solid #ede8e2;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 10px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #c8bdb7;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  transition: color 0.18s;
+}
+
+.tab-btn.active {
+  color: #c4a882;
+}
+
+/* ── Life Rating: calendar ─────────────────────────────── */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cal-month {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5c4f47;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day-header {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c8bdb7;
+  text-align: center;
+  padding: 4px 0 6px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: #5c4f47;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.cal-day:hover:not(.empty):not(.future) {
+  opacity: 0.8;
+}
+
+.cal-day.rated {
+  color: #fff;
+  font-weight: 600;
+}
+
+.cal-day.today:not(.rated) {
+  border: 1.5px solid #c4a882;
+  color: #c4a882;
+}
+
+.cal-day.empty,
+.cal-day.future {
+  color: #d9d3ce;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Life Rating: rate-today screen ────────────────────── */
+.rate-avg {
+  font-size: 2.8rem;
+  line-height: 1;
+  margin-top: 6px;
+  color: #5c4f47;
+  transition: color 0.2s;
+}
+
+.rate-areas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rate-area-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rate-area-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9e8f87;
+}
+
+.rate-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.rate-dot {
+  flex: 1;
+  height: 26px;
+  border-radius: 4px;
+  background: #ede8e2;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+/* ── Life Rating: day detail screen ────────────────────── */
+.detail-areas {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.detail-area-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #ede8e2;
+}
+
+.detail-area-name {
+  font-size: 0.82rem;
+  color: #5c4f47;
+  text-transform: capitalize;
+}
+
+.detail-area-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #3a3330;
+  font-weight: 500;
+}
+
+.score-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
