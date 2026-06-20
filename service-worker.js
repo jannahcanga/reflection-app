@@ -1,4 +1,4 @@
-const CACHE = 'reflection-v2';
+const CACHE = 'reflection-v3';
 const ASSETS = [
   '/reflection-app/',
   '/reflection-app/index.html',
