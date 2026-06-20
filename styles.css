@@ -619,3 +619,94 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ── Toolbox ───────────────────────────────────────────── */
+.toolbox-tools {
+  display: flex;
+  flex-direction: column;
+}
+
+.want-view-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.want-view-row select {
+  flex: 1;
+}
+
+.want-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.want-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ede8e2;
+}
+
+.want-item:first-child {
+  border-top: 1px solid #ede8e2;
+}
+
+.want-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.want-item-name {
+  font-size: 0.95rem;
+  color: #3a3330;
+}
+
+.want-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.want-item-meta {
+  font-size: 0.8rem;
+  color: #b0a39b;
+}
+
+.want-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+}
+
+.want-total-line {
+  font-size: 1.3rem;
+  color: #5c4f47;
+}
+
+.currency-btn {
+  flex: 1;
+  padding: 16px 8px;
+  border: 1.5px solid #e0d8d0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: transparent;
+  color: #5c4f47;
+  transition: all 0.18s;
+}
+
+.currency-btn:hover {
+  border-color: #c4a882;
+}
+
+.currency-btn.selected {
+  background: #c4a882;
+  border-color: #c4a882;
+  color: #fffdf9;
+}
