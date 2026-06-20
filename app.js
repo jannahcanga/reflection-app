@@ -605,9 +605,15 @@ let viewerIndex      = 0;
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const ratingGroup = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
+
+  const ratingGroup  = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
+  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen'];
+  let activeTab = 'tab-home';
+  if (ratingGroup.includes(id))  activeTab = 'tab-rating';
+  if (toolboxGroup.includes(id)) activeTab = 'tab-toolbox';
+
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(ratingGroup.includes(id) ? 'tab-rating' : 'tab-home').classList.add('active');
+  document.getElementById(activeTab).classList.add('active');
 }
 
 // Fisher-Yates shuffle — returns a new shuffled array
@@ -877,6 +883,247 @@ function openDayDetail(key, rating) {
   editBtn.dataset.key = key;
   editBtn.style.display = key === todayKey() ? '' : 'none';
   showScreen('day-detail-screen');
+}
+
+
+// ── Toolbox: Everything I Could Ever Want ───────────────────────────────────────
+
+let wantViewFilter       = 'All';
+let editingWantId        = null;   // null = adding a new item, otherwise the id being edited
+let selectedWantCurrency = 'PHP';
+
+function loadToolbox() {
+  return JSON.parse(localStorage.getItem('toolboxWants') || '{"categories":["Uncategorized"],"items":[]}');
+}
+
+function saveToolbox(data) {
+  localStorage.setItem('toolboxWants', JSON.stringify(data));
+}
+
+// Fetches PHP-per-USD at most once a day; falls back to the last cached rate when offline
+async function ensureFxRate() {
+  const cached = JSON.parse(localStorage.getItem('fxRate') || 'null');
+  const oneDay = 24 * 60 * 60 * 1000;
+  if (cached && Date.now() - cached.fetchedAt < oneDay) return cached;
+
+  try {
+    const res  = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    if (data.result === 'success' && data.rates && data.rates.PHP) {
+      const fresh = { rate: data.rates.PHP, fetchedAt: Date.now() };
+      localStorage.setItem('fxRate', JSON.stringify(fresh));
+      return fresh;
+    }
+  } catch (e) {
+    // offline or fetch failed — fall back to whatever is cached
+  }
+  return cached;
+}
+
+function formatMoney(amount, symbol) {
+  return symbol + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Returns { php, usd } for an item — the typed-in side is untouched, the other is computed from the cached rate
+function convertWant(item, fx) {
+  if (item.currency === 'PHP') {
+    return { php: item.amount, usd: fx ? item.amount / fx.rate : null };
+  }
+  return { php: fx ? item.amount * fx.rate : null, usd: item.amount };
+}
+
+function buildWantViewSelect(data) {
+  const select = document.getElementById('want-view-select');
+  select.innerHTML = '';
+
+  const allOpt = document.createElement('option');
+  allOpt.value = 'All';
+  allOpt.textContent = 'All';
+  select.appendChild(allOpt);
+
+  data.categories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
+  });
+
+  select.value = wantViewFilter;
+
+  document.getElementById('delete-category-btn').classList.toggle(
+    'hidden', wantViewFilter === 'All' || wantViewFilter === 'Uncategorized'
+  );
+}
+
+function buildWantList() {
+  const data = loadToolbox();
+  const fx   = JSON.parse(localStorage.getItem('fxRate') || 'null');
+
+  buildWantViewSelect(data);
+
+  const items = wantViewFilter === 'All'
+    ? data.items
+    : data.items.filter(i => i.category === wantViewFilter);
+
+  const list = document.getElementById('want-items-list');
+  list.innerHTML = '';
+
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = 'Nothing here yet.';
+    list.appendChild(empty);
+  }
+
+  let totalPhp = 0, totalUsd = 0;
+
+  items.forEach(item => {
+    const { php, usd } = convertWant(item, fx);
+    if (php !== null) totalPhp += php;
+    if (usd !== null) totalUsd += usd;
+
+    const row = document.createElement('div');
+    row.className = 'want-item';
+
+    const top = document.createElement('div');
+    top.className = 'want-item-top';
+
+    const name = document.createElement('span');
+    name.className = 'want-item-name';
+    name.textContent = item.name;
+
+    const actions = document.createElement('div');
+    actions.className = 'want-item-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'icon-btn';
+    editBtn.title = 'Edit';
+    editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+    editBtn.addEventListener('click', () => openWantForm(item));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn';
+    deleteBtn.title = 'Delete';
+    deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    deleteBtn.addEventListener('click', () => {
+      if (confirm('Delete "' + item.name + '"?')) {
+        const d = loadToolbox();
+        d.items = d.items.filter(i => i.id !== item.id);
+        saveToolbox(d);
+        buildWantList();
+      }
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    top.appendChild(name);
+    top.appendChild(actions);
+
+    const meta = document.createElement('p');
+    meta.className = 'want-item-meta';
+    const phpText = php !== null ? formatMoney(php, '₱') : '—';
+    const usdText = usd !== null ? formatMoney(usd, '$') : '—';
+    meta.textContent = phpText + '  ·  ' + usdText + '  ·  ' + item.category;
+
+    row.appendChild(top);
+    row.appendChild(meta);
+    list.appendChild(row);
+  });
+
+  setText('want-total-php', formatMoney(totalPhp, '₱'));
+  setText('want-total-usd', formatMoney(totalUsd, '$'));
+
+  const rateNote = document.getElementById('want-rate-note');
+  if (fx) {
+    const updated = new Date(fx.fetchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    rateNote.textContent = 'Rate: ₱' + fx.rate.toFixed(2) + ' / $1 · updated ' + updated + ' · via exchangerate-api.com';
+  } else {
+    rateNote.textContent = 'Rate unavailable — connect to the internet once to enable conversions.';
+  }
+}
+
+function openWantForm(item) {
+  editingWantId = item ? item.id : null;
+  const data = loadToolbox();
+
+  setText('want-form-title', item ? 'Edit item' : 'Add item');
+  document.getElementById('want-name-input').value   = item ? item.name   : '';
+  document.getElementById('want-amount-input').value = item ? item.amount : '';
+  selectedWantCurrency = item ? item.currency : 'PHP';
+  updateCurrencyButtons();
+
+  populateCategorySelect(data, item ? item.category : 'Uncategorized');
+  hide('want-new-category-area');
+  document.getElementById('want-new-category-input').value = '';
+
+  document.getElementById('delete-want-btn').classList.toggle('hidden', !item);
+
+  showScreen('want-form-screen');
+}
+
+function updateCurrencyButtons() {
+  document.querySelectorAll('.currency-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.currency === selectedWantCurrency);
+  });
+}
+
+function populateCategorySelect(data, selected) {
+  const select = document.getElementById('want-category-select');
+  select.innerHTML = '';
+
+  data.categories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
+  });
+
+  const addOpt = document.createElement('option');
+  addOpt.value = '__add_new__';
+  addOpt.textContent = '+ Add new category';
+  select.appendChild(addOpt);
+
+  select.value = selected;
+}
+
+function saveWant() {
+  const name     = document.getElementById('want-name-input').value.trim();
+  const amount   = parseFloat(document.getElementById('want-amount-input').value);
+  const category = document.getElementById('want-category-select').value;
+
+  if (!name || isNaN(amount) || category === '__add_new__') return;
+
+  const data = loadToolbox();
+
+  if (editingWantId) {
+    const existing = data.items.find(i => i.id === editingWantId);
+    existing.name     = name;
+    existing.amount   = amount;
+    existing.currency = selectedWantCurrency;
+    existing.category = category;
+  } else {
+    data.items.push({
+      id: Date.now(),
+      name, amount,
+      currency: selectedWantCurrency,
+      category
+    });
+  }
+
+  saveToolbox(data);
+  buildWantList();
+  showScreen('want-list-screen');
+}
+
+function deleteWant() {
+  if (!editingWantId) return;
+  if (!confirm('Delete this item?')) return;
+
+  const data = loadToolbox();
+  data.items = data.items.filter(i => i.id !== editingWantId);
+  saveToolbox(data);
+  buildWantList();
+  showScreen('want-list-screen');
 }
 
 
@@ -1212,8 +1459,9 @@ document.getElementById('tab-rating').addEventListener('click', () => {
   showScreen('rating-calendar-screen');
 });
 
-// Third tab is a placeholder — not wired up yet
-document.getElementById('tab-three').addEventListener('click', () => {});
+document.getElementById('tab-toolbox').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
 
 
 // ── Life Rating button wiring ─────────────────────────────────────────────────
@@ -1249,6 +1497,77 @@ document.getElementById('edit-rating-btn').addEventListener('click', () => {
 document.getElementById('detail-cal-btn').addEventListener('click', () => {
   buildCalendar();
   showScreen('rating-calendar-screen');
+});
+
+
+// ── Toolbox button wiring ─────────────────────────────────────────────────────
+
+document.getElementById('open-want-list-btn').addEventListener('click', async () => {
+  wantViewFilter = 'All';
+  await ensureFxRate();
+  buildWantList();
+  showScreen('want-list-screen');
+});
+
+document.getElementById('want-view-select').addEventListener('change', e => {
+  wantViewFilter = e.target.value;
+  buildWantList();
+});
+
+document.getElementById('delete-category-btn').addEventListener('click', () => {
+  const cat = wantViewFilter;
+  if (cat === 'All' || cat === 'Uncategorized') return;
+  if (!confirm('Delete category "' + cat + '"? Its items will move to Uncategorized.')) return;
+
+  const data = loadToolbox();
+  data.items.forEach(i => { if (i.category === cat) i.category = 'Uncategorized'; });
+  data.categories = data.categories.filter(c => c !== cat);
+  saveToolbox(data);
+
+  wantViewFilter = 'All';
+  buildWantList();
+});
+
+document.getElementById('add-want-btn').addEventListener('click', () => openWantForm(null));
+
+document.getElementById('want-list-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
+
+document.querySelectorAll('.currency-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedWantCurrency = btn.dataset.currency;
+    updateCurrencyButtons();
+  });
+});
+
+document.getElementById('want-category-select').addEventListener('change', e => {
+  if (e.target.value === '__add_new__') {
+    show('want-new-category-area');
+  } else {
+    hide('want-new-category-area');
+  }
+});
+
+document.getElementById('confirm-new-category-btn').addEventListener('click', () => {
+  const name = document.getElementById('want-new-category-input').value.trim();
+  if (!name) return;
+
+  const data = loadToolbox();
+  if (!data.categories.includes(name)) {
+    data.categories.push(name);
+    saveToolbox(data);
+  }
+
+  populateCategorySelect(data, name);
+  hide('want-new-category-area');
+});
+
+document.getElementById('save-want-btn').addEventListener('click', saveWant);
+document.getElementById('delete-want-btn').addEventListener('click', deleteWant);
+document.getElementById('cancel-want-btn').addEventListener('click', () => {
+  buildWantList();
+  showScreen('want-list-screen');
 });
 
 
