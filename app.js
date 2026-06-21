@@ -657,6 +657,53 @@ function setText(id, text) { document.getElementById(id).textContent = text; }
 function setHtml(id, html) { document.getElementById(id).innerHTML = html; }
 
 
+// ── Backup: export / import everything ──────────────────────────────────────────
+// iOS wipes localStorage when a home-screen web app is deleted, so this is the
+// safety net — export before deleting/re-adding the icon, import after.
+
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections'];
+
+function exportBackup() {
+  const dump = {};
+  BACKUP_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v !== null) dump[k] = v;
+  });
+  const payload = { app: 'reflection-app', exportedAt: new Date().toISOString(), data: dump };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'reflection-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const data = parsed.data || parsed;   // tolerate a raw file too
+      let restored = 0;
+      BACKUP_KEYS.forEach(k => {
+        if (data[k] != null) {
+          localStorage.setItem(k, typeof data[k] === 'string' ? data[k] : JSON.stringify(data[k]));
+          restored++;
+        }
+      });
+      if (restored > 0) { alert('Backup restored — reloading.'); location.reload(); }
+      else alert("That file didn't have any data I recognized.");
+    } catch (e) {
+      alert("Couldn't read that file — make sure it's a backup exported from this app.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+
 // ── Life Rating ───────────────────────────────────────────────────────────────
 
 // Tony Robbins Pyramid of Mastery — physical is the foundation (base), celebrate is the peak
@@ -1425,6 +1472,17 @@ document.getElementById('archives-btn').addEventListener('click', () => {
   showScreen('archive-screen');
 });
 
+document.getElementById('export-backup-btn').addEventListener('click', exportBackup);
+
+document.getElementById('import-backup-btn').addEventListener('click', () => {
+  document.getElementById('import-file-input').click();
+});
+
+document.getElementById('import-file-input').addEventListener('change', e => {
+  if (e.target.files[0]) importBackup(e.target.files[0]);
+  e.target.value = '';
+});
+
 document.getElementById('another-entry-btn').addEventListener('click', showHome);
 
 document.getElementById('review-btn').addEventListener('click', () => {
@@ -1576,6 +1634,18 @@ showHome();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/reflection-app/service-worker.js');
+    navigator.serviceWorker.register('/reflection-app/service-worker.js').then(registration => {
+      // Ask the browser to check for a newer service-worker.js right now
+      registration.update();
+
+      // When a new worker takes over, reload once so the new HTML/JS/CSS loads.
+      // The flag stops this from looping if controllerchange fires more than once.
+      let hasReloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hasReloaded) return;
+        hasReloaded = true;
+        location.reload();
+      });
+    });
   });
 }
