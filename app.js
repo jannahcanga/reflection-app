@@ -607,7 +607,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 
   const ratingGroup  = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
-  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen'];
+  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen'];
   let activeTab = 'tab-home';
   if (ratingGroup.includes(id))  activeTab = 'tab-rating';
   if (toolboxGroup.includes(id)) activeTab = 'tab-toolbox';
@@ -661,7 +661,7 @@ function setHtml(id, html) { document.getElementById(id).innerHTML = html; }
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
 // safety net — export before deleting/re-adding the icon, import after.
 
-const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections'];
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists'];
 
 function exportBackup() {
   const dump = {};
@@ -1174,6 +1174,91 @@ function deleteWant() {
 }
 
 
+// ── Toolbox: 20 Things I'm Grateful For ─────────────────────────────────────────
+
+let gratitudeItems = [];   // in-progress list — resets each time the tool is opened
+
+function openGratitudeScreen() {
+  gratitudeItems = [];
+  document.getElementById('gratitude-input').value = '';
+  renderGratitudeList();
+  updateGratitudeState();
+  showScreen('gratitude-screen');
+}
+
+function renderGratitudeList() {
+  const list = document.getElementById('gratitude-list');
+  list.innerHTML = '';
+
+  gratitudeItems.forEach((text, i) => {
+    const row = document.createElement('div');
+    row.className = 'gratitude-item';
+
+    const num = document.createElement('span');
+    num.className = 'gratitude-item-num';
+    num.textContent = (i + 1) + '.';
+
+    const label = document.createElement('span');
+    label.className = 'gratitude-item-text';
+    label.textContent = text;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'icon-btn';
+    removeBtn.title = 'Remove';
+    removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    removeBtn.addEventListener('click', () => {
+      gratitudeItems.splice(i, 1);
+      renderGratitudeList();
+      updateGratitudeState();
+    });
+
+    row.appendChild(num);
+    row.appendChild(label);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+function updateGratitudeState() {
+  setText('gratitude-progress', gratitudeItems.length + ' / 20');
+
+  const full = gratitudeItems.length >= 20;
+  document.getElementById('gratitude-input').disabled    = full;
+  document.getElementById('gratitude-add-btn').disabled  = full;
+  document.getElementById('gratitude-save-btn').disabled = !full;
+}
+
+function addGratitudeItem() {
+  const input = document.getElementById('gratitude-input');
+  const text  = input.value.trim();
+  if (!text || gratitudeItems.length >= 20) return;
+
+  gratitudeItems.push(text);
+  input.value = '';
+  renderGratitudeList();
+  updateGratitudeState();
+  input.focus();
+}
+
+function saveGratitudeList() {
+  if (gratitudeItems.length !== 20) return;
+
+  const entry = {
+    type:      'gratitude',
+    timestamp: Date.now(),
+    date:      formatDate(Date.now()),
+    items:     [...gratitudeItems]
+  };
+
+  const existing = JSON.parse(localStorage.getItem('gratitudeLists') || '[]');
+  existing.unshift(entry);
+  localStorage.setItem('gratitudeLists', JSON.stringify(existing));
+
+  gratitudeItems = [];
+  showScreen('toolbox-screen');
+}
+
+
 // ── Home screen ───────────────────────────────────────────────────────────────
 
 function showHome() {
@@ -1327,9 +1412,10 @@ function saveReflection() {
 function buildArchive() {
   const reflections = JSON.parse(localStorage.getItem('reflections') || '[]');
   const sayings     = JSON.parse(localStorage.getItem('sayingReflections') || '[]');
+  const gratitudes  = JSON.parse(localStorage.getItem('gratitudeLists') || '[]');
 
-  // Merge both entry types and sort newest first
-  const all = [...reflections, ...sayings].sort((a, b) => {
+  // Merge all entry types and sort newest first
+  const all = [...reflections, ...sayings, ...gratitudes].sort((a, b) => {
     return (b.timestamp || 0) - (a.timestamp || 0);
   });
 
@@ -1353,7 +1439,8 @@ function buildArchive() {
     header.className = 'entry-header';
     let label = entry.date || 'Unknown date';
     if (entry.emotion)           label += '  ·  ' + entry.emotion;
-    else if (entry.type === 'saying') label += '  ·  quote';
+    else if (entry.type === 'saying')    label += '  ·  quote';
+    else if (entry.type === 'gratitude') label += '  ·  gratitude';
     header.textContent = label;
 
     // Content — hidden by default
@@ -1394,6 +1481,14 @@ function buildArchive() {
       refEl.className = 'entry-reflection';
       refEl.textContent = entry.reflection;
       content.appendChild(refEl);
+
+    } else if (entry.type === 'gratitude') {
+      (entry.items || []).forEach((text, i) => {
+        const itemEl = document.createElement('p');
+        itemEl.className = 'entry-a';
+        itemEl.textContent = (i + 1) + '. ' + text;
+        content.appendChild(itemEl);
+      });
     }
 
     block.appendChild(header);
@@ -1626,6 +1721,16 @@ document.getElementById('delete-want-btn').addEventListener('click', deleteWant)
 document.getElementById('cancel-want-btn').addEventListener('click', () => {
   buildWantList();
   showScreen('want-list-screen');
+});
+
+
+// ── Gratitude button wiring ───────────────────────────────────────────────────
+
+document.getElementById('open-gratitude-btn').addEventListener('click', openGratitudeScreen);
+document.getElementById('gratitude-add-btn').addEventListener('click', addGratitudeItem);
+document.getElementById('gratitude-save-btn').addEventListener('click', saveGratitudeList);
+document.getElementById('gratitude-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
 });
 
 
