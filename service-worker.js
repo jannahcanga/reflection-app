@@ -1,5 +1,8 @@
-const CACHE = 'reflection-v3';
-const ASSETS = [
+const CACHE_VERSION = 'v6';
+const CACHE = 'reflection-cache-' + CACHE_VERSION;
+
+// App shell — changes with every code update, always fetched fresh when online
+const APP_SHELL = [
   '/reflection-app/',
   '/reflection-app/index.html',
   '/reflection-app/styles.css',
@@ -7,13 +10,22 @@ const ASSETS = [
   '/reflection-app/manifest.json'
 ];
 
-// On first load: save all files to the phone
+// Assets that never change once published — safe to serve straight from cache
+const STATIC_ASSETS = [
+  '/reflection-app/icon.png'
+];
+
+const ASSETS = APP_SHELL.concat(STATIC_ASSETS);
+
+// On first load (or after an update): precache everything, then activate
+// immediately instead of sitting in "waiting" behind open tabs
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
-// Clean up old cached versions when a new one arrives
+// Drop every cache that isn't this version, then take control of any open
+// pages right away. Only ever touches Cache Storage — never localStorage.
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -23,8 +35,20 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Network first: try to load fresh, update cache, fall back to cache if offline
+// Static assets (icons/fonts): cache-first, since they never change.
+// Everything else (HTML/JS/CSS, navigations): network-first, so the newest
+// code always loads while you're online — cache is just the offline fallback.
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  const isStatic = STATIC_ASSETS.includes(url.pathname);
+
+  if (isStatic) {
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request))
+    );
+    return;
+  }
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
