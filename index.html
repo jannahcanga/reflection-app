@@ -213,6 +213,7 @@
         <p class="section-label">Toolbox</p>
         <div class="toolbox-tools">
           <button id="open-want-list-btn" class="person-btn">Everything I Could Ever Want</button>
+          <button id="open-gratitude-btn" class="person-btn">20 Things I'm Grateful For</button>
         </div>
       </div>
     </div>
@@ -272,6 +273,26 @@
           <button id="delete-want-btn" class="btn secondary hidden">Delete</button>
           <button id="cancel-want-btn" class="btn secondary">Cancel</button>
         </div>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: 20 Things I'm Grateful For -->
+    <div id="gratitude-screen" class="screen">
+      <div class="card">
+        <p class="section-label">20 Things I'm Grateful For</p>
+        <p class="light-subtext">Add one at a time — the list saves once all 20 are filled in.</p>
+
+        <p id="gratitude-progress" class="progress">0 / 20</p>
+
+        <div class="gratitude-input-row">
+          <input id="gratitude-input" class="search-input" type="text" placeholder="I'm grateful for...">
+          <button id="gratitude-add-btn" class="btn secondary">Add</button>
+        </div>
+
+        <div id="gratitude-list" class="gratitude-list"></div>
+
+        <button id="gratitude-save-btn" class="btn" disabled>Save</button>
+        <button id="gratitude-back-btn" class="btn secondary">Back to Toolbox</button>
       </div>
     </div>
 
