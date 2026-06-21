@@ -7,10 +7,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Reflection">
-    <meta name="theme-color" content="#f5f0eb">
+    <meta name="theme-color" content="#F4ECE2">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/reflection-app/icon.png">
     <title>Daily Reflection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
   </head>
 
@@ -21,6 +24,7 @@
       <div class="card">
 
         <div class="saying-block">
+          <div class="hero-orb" aria-hidden="true"></div>
           <p id="saying-text" class="saying"></p>
           <div class="saying-meta">
             <p id="saying-source" class="source"></p>
@@ -44,7 +48,7 @@
           </div>
           <div id="write-about-area" class="hidden">
             <textarea id="saying-reflection-input" class="answer-input" placeholder="What does this bring up for you?"></textarea>
-            <button id="save-saying-btn" class="btn">Save reflection</button>
+            <button id="save-saying-btn" class="btn accent">Save reflection</button>
           </div>
         </div>
 
@@ -130,7 +134,7 @@
     <!-- ARCHIVE SCREEN: all past entries, grouped by date -->
     <div id="archive-screen" class="screen">
       <div class="card">
-        <p class="section-label">Journal</p>
+        <p class="section-label screen-title">Journal</p>
         <div id="entries-list"></div>
         <button id="archive-home-btn" class="btn secondary">Home</button>
       </div>
@@ -139,8 +143,14 @@
     <!-- QUOTES BROWSER: alphabetical list of sources -->
     <div id="quotes-browser-screen" class="screen">
       <div class="card">
-        <p class="section-label">Quotes by</p>
-        <input id="search-input" class="search-input" type="text" placeholder="Search...">
+        <p class="section-label screen-title">Quotes by</p>
+        <div class="input-glass">
+          <svg class="input-glass-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input id="search-input" class="search-input" type="text" placeholder="Search...">
+        </div>
         <div id="people-list"></div>
         <button id="browser-home-btn" class="btn secondary">Home</button>
       </div>
@@ -189,7 +199,7 @@
           <p id="rate-avg-display" class="rate-avg">—</p>
         </div>
         <div id="rate-areas-list" class="rate-areas"></div>
-        <button id="save-rating-btn" class="btn">Save</button>
+        <button id="save-rating-btn" class="btn accent">Save</button>
         <button id="rating-cal-btn" class="btn secondary">Back to calendar</button>
       </div>
     </div>
@@ -210,7 +220,7 @@
     <!-- TOOLBOX: landing list of tools -->
     <div id="toolbox-screen" class="screen">
       <div class="card">
-        <p class="section-label">Toolbox</p>
+        <p class="section-label screen-title">Toolbox</p>
         <div class="toolbox-tools">
           <button id="open-want-list-btn" class="person-btn">Everything I Could Ever Want</button>
           <button id="open-gratitude-btn" class="person-btn">20 Things I'm Grateful For</button>
@@ -221,7 +231,7 @@
     <!-- TOOLBOX: Everything I Could Ever Want — list + totals -->
     <div id="want-list-screen" class="screen">
       <div class="card">
-        <p class="section-label">Everything I Could Ever Want</p>
+        <p class="section-label screen-title">Everything I Could Ever Want</p>
 
         <div class="want-view-row">
           <select id="want-view-select" class="search-input"></select>
@@ -251,7 +261,7 @@
     <!-- TOOLBOX: Everything I Could Ever Want — add/edit form -->
     <div id="want-form-screen" class="screen">
       <div class="card">
-        <p id="want-form-title" class="section-label">Add item</p>
+        <p id="want-form-title" class="section-label screen-title">Add item</p>
 
         <input id="want-name-input" class="search-input" type="text" placeholder="What do you want?">
 
@@ -268,7 +278,7 @@
           <button id="confirm-new-category-btn" class="btn secondary">Add category</button>
         </div>
 
-        <button id="save-want-btn" class="btn">Save</button>
+        <button id="save-want-btn" class="btn accent">Save</button>
         <div class="btn-row">
           <button id="delete-want-btn" class="btn secondary hidden">Delete</button>
           <button id="cancel-want-btn" class="btn secondary">Cancel</button>
@@ -279,7 +289,7 @@
     <!-- TOOLBOX: 20 Things I'm Grateful For -->
     <div id="gratitude-screen" class="screen">
       <div class="card">
-        <p class="section-label">20 Things I'm Grateful For</p>
+        <p class="section-label screen-title">20 Things I'm Grateful For</p>
         <p class="light-subtext">Add one at a time — the list saves once all 20 are filled in.</p>
 
         <p id="gratitude-progress" class="progress">0 / 20</p>
@@ -291,7 +301,7 @@
 
         <div id="gratitude-list" class="gratitude-list"></div>
 
-        <button id="gratitude-save-btn" class="btn" disabled>Save</button>
+        <button id="gratitude-save-btn" class="btn accent" disabled>Save</button>
         <button id="gratitude-back-btn" class="btn secondary">Back to Toolbox</button>
       </div>
     </div>
