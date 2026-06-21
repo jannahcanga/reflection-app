@@ -656,6 +656,20 @@ function hide(id)  { document.getElementById(id).classList.add('hidden'); }
 function setText(id, text) { document.getElementById(id).textContent = text; }
 function setHtml(id, html) { document.getElementById(id).innerHTML = html; }
 
+// Briefly shows a quiet "Saved" flourish near the tab bar — used after any save
+let saveToastTimer = null;
+function showSavedToast(message) {
+  const toast = document.getElementById('save-toast');
+  setText('save-toast-text', message || 'Saved');
+
+  toast.classList.remove('hidden');
+  toast.classList.remove('show');
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  clearTimeout(saveToastTimer);
+  saveToastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
 
 // ── Backup: export / import everything ──────────────────────────────────────────
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
@@ -881,6 +895,7 @@ function saveRating() {
   localStorage.setItem('lifeRatings', JSON.stringify(ratings));
   buildCalendar();
   showScreen('rating-calendar-screen');
+  showSavedToast('Rating saved');
 }
 
 function openDayDetail(key, rating) {
@@ -1002,7 +1017,7 @@ function buildWantViewSelect(data) {
   );
 }
 
-function buildWantList() {
+function buildWantList(highlightId) {
   const data = loadToolbox();
   const fx   = JSON.parse(localStorage.getItem('fxRate') || 'null');
 
@@ -1031,6 +1046,7 @@ function buildWantList() {
 
     const row = document.createElement('div');
     row.className = 'want-item';
+    if (item.id === highlightId) row.classList.add('item-enter');
 
     const top = document.createElement('div');
     top.className = 'want-item-top';
@@ -1142,6 +1158,8 @@ function saveWant() {
 
   const data = loadToolbox();
 
+  let savedId = editingWantId;
+
   if (editingWantId) {
     const existing = data.items.find(i => i.id === editingWantId);
     existing.name     = name;
@@ -1149,8 +1167,9 @@ function saveWant() {
     existing.currency = selectedWantCurrency;
     existing.category = category;
   } else {
+    savedId = Date.now();
     data.items.push({
-      id: Date.now(),
+      id: savedId,
       name, amount,
       currency: selectedWantCurrency,
       category
@@ -1158,8 +1177,9 @@ function saveWant() {
   }
 
   saveToolbox(data);
-  buildWantList();
+  buildWantList(savedId);
   showScreen('want-list-screen');
+  showSavedToast('Item saved');
 }
 
 function deleteWant() {
@@ -1186,13 +1206,14 @@ function openGratitudeScreen() {
   showScreen('gratitude-screen');
 }
 
-function renderGratitudeList() {
+function renderGratitudeList(animateLast) {
   const list = document.getElementById('gratitude-list');
   list.innerHTML = '';
 
   gratitudeItems.forEach((text, i) => {
     const row = document.createElement('div');
     row.className = 'gratitude-item';
+    if (animateLast && i === gratitudeItems.length - 1) row.classList.add('item-enter');
 
     const num = document.createElement('span');
     num.className = 'gratitude-item-num';
@@ -1235,7 +1256,7 @@ function addGratitudeItem() {
 
   gratitudeItems.push(text);
   input.value = '';
-  renderGratitudeList();
+  renderGratitudeList(true);
   updateGratitudeState();
   input.focus();
 }
@@ -1256,6 +1277,7 @@ function saveGratitudeList() {
 
   gratitudeItems = [];
   showScreen('toolbox-screen');
+  showSavedToast('Gratitude list saved');
 }
 
 
@@ -1312,6 +1334,7 @@ document.getElementById('save-saying-btn').addEventListener('click', () => {
 
   hide('write-about-area');
   document.getElementById('saying-reflection-input').value = '';
+  showSavedToast('Reflection saved');
 });
 
 // Emotion buttons — each one starts the right question flow
@@ -1375,6 +1398,7 @@ document.getElementById('next-btn').addEventListener('click', () => {
   } else {
     saveReflection();
     showScreen('done-screen');
+    showSavedToast('Reflection saved');
   }
 });
 
