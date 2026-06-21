@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE = 'reflection-cache-' + CACHE_VERSION;
 
 // App shell — changes with every code update, always fetched fresh when online
