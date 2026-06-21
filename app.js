@@ -730,12 +730,13 @@ let calMonth = new Date().getMonth();
 let currentRatingKey    = null;
 let currentRatingValues = {};
 
-// 8–10 = blues (light → navy); 0–7 = pinks/reds (light → deep). Hard jump at 8.
+// 8–10 = warm glow (peach → signature orange), echoing the hero accent for good days.
+// 0–7 = cool, fading taupe → near-black charcoal for low days. Hard jump at 8.
 function ratingColor(v) {
   if (v >= 8) {
-    return ['#aed6f1', '#5dade2', '#1b4f72'][v - 8];
+    return ['#FFD9A8', '#FF9D45', '#F25C05'][v - 8];
   }
-  return ['#fce4e7','#f9cdd1','#f5b5ba','#ef9ba2','#e77f87','#dc606a','#cd4050','#b52435'][v];
+  return ['#E4D9D2','#D6C6BC','#C2AEA3','#A8918A','#8A7370','#6B5658','#4A3A3F','#2A2024'][v];
 }
 
 function todayKey() {
