@@ -198,6 +198,7 @@
           <p id="rate-today-date" class="section-label"></p>
           <p id="rate-avg-display" class="rate-avg">—</p>
         </div>
+        <p id="scale-hint" class="scale-hint hidden">Hold a name to see what each score means</p>
         <div id="rate-areas-list" class="rate-areas"></div>
         <button id="save-rating-btn" class="btn accent">Save</button>
         <button id="rating-cal-btn" class="btn secondary">Back to calendar</button>
@@ -340,6 +341,14 @@
         <polyline points="20 6 9 17 4 12"/>
       </svg>
       <span id="save-toast-text">Saved</span>
+    </div>
+
+    <!-- Scale definitions ladder — shown while holding an area name (Life Rating), hidden on release -->
+    <div id="scale-panel-overlay" class="scale-panel-overlay">
+      <div class="scale-panel">
+        <p id="scale-panel-title" class="scale-panel-title"></p>
+        <div id="scale-panel-levels" class="scale-panel-levels"></div>
+      </div>
     </div>
 
     <script src="app.js"></script>
