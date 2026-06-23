@@ -1,27 +1,72 @@
 /* ── Design tokens ─────────────────────────────────────── */
 :root {
-  --cream-start:   #F4ECE2;
-  --cream-end:     #EFE4D6;
-  --orange-light:  #FF9D45;
-  --orange-deep:   #F25C05;
-  --ink:           #161616;
-  --ink-soft:      #2A2724;
-  --muted:         #8A8178;
-  --muted-light:   #ABA197;
+  /* Background + glow */
+  --bg-base:   #F4ECE2;
+  --bg-glow-1: rgba(255, 157, 69, 0.32);
+  --bg-glow-2: rgba(242, 92, 5, 0.16);
 
-  --glass-bg:        rgba(255, 255, 255, 0.55);
-  --glass-bg-strong: rgba(255, 255, 255, 0.7);
-  --glass-bg-solid:  rgba(255, 255, 255, 0.92);
-  --glass-surface:   rgba(255, 255, 255, 0.85);
-  --glass-border:    rgba(255, 255, 255, 0.6);
-  --hairline:        rgba(22, 16, 8, 0.08);
+  /* Glass (chrome: cards, panels, nav) */
+  --glass-fill:      rgba(255, 255, 255, 0.45);
+  --glass-border:    rgba(255, 255, 255, 0.55);
+  --glass-highlight: rgba(255, 255, 255, 0.65);
+  --glass-shadow:    rgba(60, 30, 10, 0.12);
 
+  /* Content fill — a touch more opaque than chrome glass, for long-form
+     reading surfaces (archive entries, want/gratitude items, textareas) */
+  --content-fill: rgba(255, 255, 255, 0.85);
+
+  /* Text */
+  --text:       #161616;
+  --text-soft:  #2A2724;
+  --text-muted: #8A8178;
+  --text-faint: #ABA197;
+
+  /* Accent (orange) */
+  --accent:       #F25C05;
+  --accent-light: #FF9D45;
+  --accent-soft:  rgba(242, 92, 5, 0.12);
+
+  /* Solid surfaces — primary buttons, save-toast: deliberately not glass */
+  --surface-solid:       #161616;
+  --surface-solid-text:  #ffffff;
+  --surface-solid-hover: #000000;
+
+  /* Structure — same in both themes */
+  --hairline: rgba(22, 16, 8, 0.08);
   --r-pill: 999px;
   --r-lg:   28px;
   --r-md:   20px;
   --r-sm:   14px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme="dark"] {
+  --bg-base:   #140D0A;
+  --bg-glow-1: rgba(239, 138, 60, 0.38);
+  --bg-glow-2: rgba(217, 98, 30, 0.20);
+
+  --glass-fill:      rgba(255, 255, 255, 0.07);
+  --glass-border:    rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.20);
+  --glass-shadow:    rgba(0, 0, 0, 0.5);
+
+  --content-fill: rgba(255, 255, 255, 0.10);
+
+  --text:       #F5EFEA;
+  --text-soft:  rgba(245, 239, 234, 0.88);
+  --text-muted: rgba(245, 239, 234, 0.6);
+  --text-faint: rgba(245, 239, 234, 0.4);
+
+  --accent:       #EF8A3C;
+  --accent-light: #FFB066;
+  --accent-soft:  rgba(239, 138, 60, 0.18);
+
+  --surface-solid:       #2A2018;
+  --surface-solid-text:  #F5EFEA;
+  --surface-solid-hover: #3A2C1E;
+
+  --hairline: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Base reset & font ─────────────────────────────────── */
@@ -43,30 +88,54 @@
 }
 
 html {
-  background: var(--cream-end);
+  background: var(--bg-base);
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--ink);
+  color: var(--text);
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 24px 100px;
+  padding: 40px 24px 130px;
   position: relative;
+  transition: color 0.2s ease-out;
 }
 
 /* Fixed-position glow layer instead of background-attachment:fixed — iOS Safari
-   renders the latter unreliably during momentum scroll */
+   renders the latter unreliably during momentum scroll. Two glows (top + bottom)
+   so there's varied color behind every screen for the glass to actually blur. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle at 88% -8%, rgba(255, 157, 69, 0.38), transparent 55%),
-    linear-gradient(160deg, var(--cream-start) 0%, var(--cream-end) 100%);
+    radial-gradient(60% 50% at 50% 0%,   var(--bg-glow-1), transparent 70%),
+    radial-gradient(80% 60% at 50% 100%, var(--bg-glow-2), transparent 70%),
+    var(--bg-base);
+  transition: background-color 0.2s ease-out;
+}
+
+/* ── Shared glass treatment ────────────────────────────── */
+/* Fill/blur/border/shadow only — each block keeps its own border-radius,
+   padding, and layout via its own selector (set later, so it wins on those
+   specific properties without fighting this one for everything else). */
+.glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 8px 30px var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
+  color: var(--text);
+  transition: background-color 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--bg-base); }
 }
 
 /* ── Screens ───────────────────────────────────────────── */
@@ -88,22 +157,13 @@ body::before {
 
 /* ── Card ──────────────────────────────────────────────── */
 .card {
-  background: var(--glass-bg-solid);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--r-lg);
   padding: 36px 28px;
-  box-shadow: 0 12px 36px rgba(22, 16, 8, 0.1);
   display: flex;
   flex-direction: column;
   gap: 26px;
   position: relative;
   overflow: hidden;
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .card { background: rgba(255, 255, 255, 0.97); }
 }
 
 /* ── Labels & meta text ────────────────────────────────── */
@@ -112,7 +172,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .screen-title {
@@ -121,12 +181,12 @@ body::before {
   font-weight: 700;
   letter-spacing: -0.01em;
   text-transform: none;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .progress {
   font-size: 0.76rem;
-  color: var(--muted);
+  color: var(--text-muted);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -151,7 +211,7 @@ body::before {
   width: 170px;
   height: 170px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--orange-light), var(--orange-deep) 72%);
+  background: radial-gradient(circle at 35% 30%, var(--accent-light), var(--accent) 72%);
   filter: blur(36px);
   opacity: 0.55;
   z-index: 0;
@@ -163,7 +223,7 @@ body::before {
   line-height: 1.7;
   font-style: italic;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: var(--text-soft);
 }
 
 .saying-meta {
@@ -174,7 +234,7 @@ body::before {
 
 .source {
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .saying-icons {
@@ -189,7 +249,7 @@ body::before {
   padding: 0;
   font-family: inherit;
   font-size: 0.82rem;
-  color: var(--orange-deep);
+  color: var(--accent);
   cursor: pointer;
   text-align: left;
   text-decoration: underline;
@@ -198,7 +258,7 @@ body::before {
 }
 
 .text-link:hover {
-  text-decoration-color: var(--orange-deep);
+  text-decoration-color: var(--accent);
 }
 
 /* ── Divider ───────────────────────────────────────────── */
@@ -221,23 +281,23 @@ body::before {
   border: none;
   font-family: inherit;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   transition: color 0.18s ease-out;
 }
 
 .footer-link:hover {
-  color: var(--orange-deep);
+  color: var(--accent);
 }
 
 .icon-btn {
-  background: var(--glass-bg);
+  background: var(--glass-fill);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   cursor: pointer;
   width: 34px;
   height: 34px;
@@ -250,13 +310,12 @@ body::before {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .icon-btn { background: rgba(255, 255, 255, 0.88); }
+  .icon-btn { background: var(--bg-base); }
 }
 
 .icon-btn:hover {
-  color: var(--orange-deep);
-  background-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 14px rgba(22, 16, 8, 0.08);
+  color: var(--accent);
+  background-color: var(--glass-highlight);
 }
 
 .icon-btn:active {
@@ -284,23 +343,21 @@ body::before {
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  background: var(--glass-bg);
+  background: var(--glass-fill);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  color: var(--ink-soft);
-  box-shadow: 0 4px 14px rgba(22, 16, 8, 0.05);
-  transition: background-color 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.15s var(--ease-out);
+  color: var(--text-soft);
+  transition: background-color 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out, transform 0.15s var(--ease-out);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .emotion-btn { background: rgba(255, 255, 255, 0.85); }
+  .emotion-btn { background: var(--bg-base); }
 }
 
 .emotion-btn:hover {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
-  box-shadow: 0 10px 22px rgba(22, 16, 8, 0.28);
+  background: var(--surface-solid);
+  border-color: var(--surface-solid);
+  color: var(--surface-solid-text);
 }
 
 .emotion-btn:active {
@@ -319,7 +376,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--orange-deep);
+  color: var(--accent);
 }
 
 .section-header {
@@ -327,7 +384,7 @@ body::before {
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--muted-light);
+  color: var(--text-faint);
   padding-top: 2px;
 }
 
@@ -341,13 +398,13 @@ body::before {
   font-size: 1.15rem;
   font-weight: 500;
   line-height: 1.6;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .light-subtext {
   font-size: 0.85rem;
   line-height: 1.6;
-  color: var(--muted);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -359,8 +416,8 @@ body::before {
   padding: 16px 18px;
   font-family: 'Inter', sans-serif;
   font-size: 1rem;
-  color: var(--ink);
-  background: var(--glass-surface);
+  color: var(--text);
+  background: var(--content-fill);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   resize: vertical;
@@ -369,13 +426,12 @@ body::before {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .answer-input { background: rgba(255, 255, 255, 0.95); }
+  .answer-input { background: var(--bg-base); }
 }
 
 .answer-input:focus {
-  border-color: var(--orange-deep);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 3px rgba(242, 92, 5, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ── Done screen ───────────────────────────────────────── */
@@ -384,30 +440,29 @@ body::before {
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: var(--text);
   margin-bottom: 6px;
 }
 
 .done-sub {
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* ── Archive screen ────────────────────────────────────── */
 .entry-block {
   display: flex;
   flex-direction: column;
-  background: var(--glass-surface);
+  background: var(--content-fill);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-sm);
-  box-shadow: 0 2px 10px rgba(22, 16, 8, 0.05);
   overflow: hidden;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .entry-block { background: rgba(255, 255, 255, 0.95); }
+  .entry-block { background: var(--bg-base); }
 }
 
 .entry-block + .entry-block {
@@ -424,7 +479,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: left;
   cursor: pointer;
   display: flex;
@@ -434,8 +489,8 @@ body::before {
 }
 
 .entry-header:hover {
-  color: var(--ink-soft);
-  background-color: rgba(242, 92, 5, 0.05);
+  color: var(--text-soft);
+  background-color: var(--accent-soft);
 }
 
 .entry-header:active {
@@ -464,7 +519,7 @@ body::before {
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--orange-deep);
+  color: var(--accent);
 }
 
 .entry-qa {
@@ -475,33 +530,33 @@ body::before {
 
 .entry-q {
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--text-muted);
   font-style: italic;
 }
 
 .entry-a {
   font-size: 0.95rem;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   line-height: 1.5;
 }
 
 .entry-quote {
   font-size: 0.95rem;
   font-style: italic;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   line-height: 1.6;
 }
 
 .entry-reflection {
   font-size: 0.95rem;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   line-height: 1.5;
   margin-top: 4px;
 }
 
 .empty-message {
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text-muted);
   padding: 12px 0;
 }
 
@@ -515,7 +570,7 @@ body::before {
 .input-glass-icon {
   position: absolute;
   left: 17px;
-  color: var(--muted);
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -530,8 +585,8 @@ body::before {
   padding: 13px 18px;
   font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
-  color: var(--ink);
-  background: var(--glass-bg);
+  color: var(--text);
+  background: var(--glass-fill);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   outline: none;
@@ -539,13 +594,12 @@ body::before {
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .search-input { background: rgba(255, 255, 255, 0.9); }
+  .search-input { background: var(--bg-base); }
 }
 
 .search-input:focus {
-  border-color: var(--orange-deep);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 0 0 3px rgba(242, 92, 5, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .search-input:disabled {
@@ -562,25 +616,25 @@ body::before {
   font-family: 'Inter', sans-serif;
   font-size: 1rem;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   text-align: left;
   cursor: pointer;
   transition: color 0.18s ease-out, background-color 0.18s ease-out, transform 0.15s var(--ease-out);
 }
 
 .person-btn:hover {
-  color: var(--orange-deep);
-  background-color: rgba(242, 92, 5, 0.06);
+  color: var(--accent);
+  background-color: var(--accent-soft);
 }
 
 .person-btn:active {
   transform: scale(0.985);
-  background-color: rgba(242, 92, 5, 0.1);
+  background-color: var(--accent-soft);
 }
 
 .no-results {
   font-size: 0.88rem;
-  color: var(--muted);
+  color: var(--text-muted);
   padding: 12px 0;
 }
 
@@ -596,7 +650,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* ── Buttons ───────────────────────────────────────────── */
@@ -611,13 +665,13 @@ body::before {
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  background-color: var(--ink);
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(22, 16, 8, 0.22);
+  background-color: var(--surface-solid);
+  color: var(--surface-solid-text);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.15s var(--ease-out);
+  transition: background-color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.15s var(--ease-out), filter 0.18s ease-out;
 }
 
 .btn:not(.secondary)::after {
@@ -637,8 +691,8 @@ body::before {
 }
 
 .btn:hover {
-  background-color: #000;
-  box-shadow: 0 12px 28px rgba(22, 16, 8, 0.3);
+  filter: brightness(0.85);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
 }
 
 .btn:active {
@@ -646,36 +700,38 @@ body::before {
 }
 
 .btn.accent {
-  background: linear-gradient(135deg, var(--orange-light), var(--orange-deep));
-  box-shadow: 0 10px 26px rgba(242, 92, 5, 0.38);
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
 .btn.accent:hover {
-  background: linear-gradient(135deg, var(--orange-light), #d94f00);
-  box-shadow: 0 12px 30px rgba(242, 92, 5, 0.45);
+  filter: brightness(1.08);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .btn.secondary {
   padding: 16px 22px;
-  background: var(--glass-bg);
+  background: var(--glass-fill);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  color: var(--ink-soft);
+  color: var(--text-soft);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 4px 14px rgba(22, 16, 8, 0.06);
+  box-shadow: none;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .btn.secondary { background: rgba(255, 255, 255, 0.92); }
+  .btn.secondary { background: var(--bg-base); }
 }
 
 .btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--glass-highlight);
+  filter: none;
+  box-shadow: none;
 }
 
 .btn.secondary:active {
   transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--glass-highlight);
 }
 
 .btn:disabled {
@@ -698,44 +754,42 @@ body::before {
   display: none;
 }
 
-/* ── Bottom tab bar ────────────────────────────────────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ── Floating bubble navigation ────────────────────────── */
 .tab-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-border);
-  box-shadow: 0 -6px 24px rgba(22, 16, 8, 0.06);
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   display: flex;
-  justify-content: space-around;
-  align-items: flex-start;
-  padding-top: 12px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--r-pill);
   z-index: 100;
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tab-bar { background: rgba(255, 255, 255, 0.92); }
-}
-
 .tab-btn {
-  flex: 1;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   background: none;
   border: none;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  color: var(--muted-light);
+  justify-content: center;
+  color: var(--text-faint);
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  transition: color 0.18s ease-out, transform 0.15s var(--ease-out);
+  transition: color 0.18s ease-out, background-color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.12s var(--ease-out);
 }
 
 .tab-btn svg {
@@ -743,15 +797,17 @@ body::before {
 }
 
 .tab-btn.active {
-  color: var(--orange-deep);
+  color: var(--accent);
+  background: var(--glass-highlight);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .tab-btn.active svg {
-  transform: translateY(-1px) scale(1.1);
+  transform: scale(1.1);
 }
 
 .tab-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.88);
 }
 
 /* ── Life Rating: calendar ─────────────────────────────── */
@@ -766,7 +822,7 @@ body::before {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .cal-grid {
@@ -780,7 +836,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--muted-light);
+  color: var(--text-faint);
   text-align: center;
   padding: 4px 0 6px;
 }
@@ -796,7 +852,7 @@ body::before {
   font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   cursor: pointer;
   transition: opacity 0.15s ease-out, transform 0.15s var(--ease-out);
 }
@@ -809,19 +865,21 @@ body::before {
   transform: scale(0.88);
 }
 
+/* Rated/today/empty/future cells keep solid, vivid colors set inline via
+   ratingColor() in app.js — never glassified, so the rating scale stays clear */
 .cal-day.rated {
   color: #fff;
   font-weight: 700;
 }
 
 .cal-day.today:not(.rated) {
-  border: 1.5px solid var(--orange-deep);
-  color: var(--orange-deep);
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
 }
 
 .cal-day.empty,
 .cal-day.future {
-  color: #D8CFC5;
+  color: var(--text-faint);
   cursor: default;
   pointer-events: none;
 }
@@ -833,7 +891,7 @@ body::before {
   font-weight: 700;
   line-height: 1;
   margin-top: 6px;
-  color: var(--ink);
+  color: var(--text);
   transition: color 0.2s ease-out;
 }
 
@@ -855,7 +913,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .rate-dots {
@@ -863,11 +921,12 @@ body::before {
   gap: 3px;
 }
 
+/* Dots are filled solid via ratingColor() in app.js — kept opaque on purpose */
 .rate-dot {
   flex: 1;
   height: 26px;
   border-radius: 6px;
-  background: rgba(22, 16, 8, 0.08);
+  background: var(--hairline);
   border: none;
   cursor: pointer;
   transition: background-color 0.1s ease-out, transform 0.15s var(--ease-out);
@@ -894,7 +953,7 @@ body::before {
 
 .detail-area-name {
   font-size: 0.82rem;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   text-transform: capitalize;
 }
 
@@ -903,7 +962,7 @@ body::before {
   align-items: center;
   gap: 8px;
   font-size: 0.95rem;
-  color: var(--ink);
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -921,13 +980,13 @@ body::before {
   user-select: none;
   -webkit-touch-callout: none;
   touch-action: manipulation;
-  text-decoration: underline dotted var(--muted-light);
+  text-decoration: underline dotted var(--text-faint);
   text-underline-offset: 3px;
 }
 
 .scale-hint {
   font-size: 0.72rem;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -939,7 +998,7 @@ body::before {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(22, 16, 8, 0.45);
+  background: rgba(0, 0, 0, 0.45);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease-out;
@@ -954,21 +1013,10 @@ body::before {
   max-width: 380px;
   max-height: 80vh;
   overflow-y: auto;
-  background: var(--glass-bg-solid);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: var(--r-lg);
   padding: 24px 22px;
-  box-shadow: 0 20px 50px rgba(22, 16, 8, 0.3);
   transform: scale(0.96) translateY(6px);
   transition: transform 0.15s var(--ease-out);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .scale-panel {
-    background: rgba(255, 255, 255, 0.98);
-  }
 }
 
 .scale-panel-overlay.show .scale-panel {
@@ -980,7 +1028,7 @@ body::before {
   font-size: 1.15rem;
   font-weight: 700;
   text-transform: capitalize;
-  color: var(--ink);
+  color: var(--text);
   margin-bottom: 14px;
 }
 
@@ -997,12 +1045,13 @@ body::before {
 }
 
 .scale-level-row.goal {
-  background: rgba(242, 92, 5, 0.06);
+  background: var(--accent-soft);
   border-radius: var(--r-sm);
   padding: 10px 8px;
   margin: 0 -8px;
 }
 
+/* Badges are filled solid via ratingColor() in app.js — kept opaque on purpose */
 .scale-level-badge {
   flex-shrink: 0;
   width: 28px;
@@ -1027,13 +1076,13 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--orange-deep);
+  color: var(--accent);
 }
 
 .scale-level-def {
   font-size: 0.84rem;
   line-height: 1.4;
-  color: var(--ink-soft);
+  color: var(--text-soft);
 }
 
 /* ── Toolbox ───────────────────────────────────────────── */
@@ -1063,16 +1112,15 @@ body::before {
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  background: var(--glass-surface);
+  background: var(--content-fill);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-sm);
-  box-shadow: 0 2px 10px rgba(22, 16, 8, 0.05);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .want-item { background: rgba(255, 255, 255, 0.95); }
+  .want-item { background: var(--bg-base); }
 }
 
 .want-item + .want-item {
@@ -1089,7 +1137,7 @@ body::before {
 .want-item-name {
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: var(--text-soft);
 }
 
 .want-item-actions {
@@ -1100,7 +1148,7 @@ body::before {
 
 .want-item-meta {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .want-totals {
@@ -1114,7 +1162,7 @@ body::before {
   font-family: 'Sora', 'Inter', sans-serif;
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .currency-btn {
@@ -1126,19 +1174,19 @@ body::before {
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  background: var(--glass-bg);
+  background: var(--glass-fill);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  color: var(--ink-soft);
+  color: var(--text-soft);
   transition: background-color 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.15s var(--ease-out);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .currency-btn { background: rgba(255, 255, 255, 0.85); }
+  .currency-btn { background: var(--bg-base); }
 }
 
 .currency-btn:hover {
-  border-color: var(--orange-deep);
+  border-color: var(--accent);
 }
 
 .currency-btn:active {
@@ -1146,10 +1194,10 @@ body::before {
 }
 
 .currency-btn.selected {
-  background: linear-gradient(135deg, var(--orange-light), var(--orange-deep));
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
   border-color: transparent;
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(242, 92, 5, 0.35);
+  color: var(--surface-solid-text);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* ── Toolbox: 20 Things I'm Grateful For ────────────────── */
@@ -1176,16 +1224,15 @@ body::before {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--glass-surface);
+  background: var(--content-fill);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-sm);
-  box-shadow: 0 2px 10px rgba(22, 16, 8, 0.05);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .gratitude-item { background: rgba(255, 255, 255, 0.95); }
+  .gratitude-item { background: var(--bg-base); }
 }
 
 .gratitude-item + .gratitude-item {
@@ -1194,7 +1241,7 @@ body::before {
 
 .gratitude-item-num {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text-muted);
   flex-shrink: 0;
   width: 20px;
 }
@@ -1202,7 +1249,7 @@ body::before {
 .gratitude-item-text {
   flex: 1;
   font-size: 0.95rem;
-  color: var(--ink-soft);
+  color: var(--text-soft);
 }
 
 /* ── Shared: new-item entrance ──────────────────────────── */
@@ -1224,11 +1271,11 @@ body::before {
 
 .save-toast {
   position: fixed;
-  bottom: calc(72px + env(safe-area-inset-bottom));
+  bottom: calc(96px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(8px);
-  background: var(--ink);
-  color: #fff;
+  background: var(--surface-solid);
+  color: var(--surface-solid-text);
   padding: 10px 18px;
   border-radius: var(--r-pill);
   display: flex;
@@ -1237,7 +1284,7 @@ body::before {
   font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
   font-weight: 500;
-  box-shadow: 0 10px 28px rgba(22, 16, 8, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease-out, transform 0.25s var(--ease-out);
@@ -1251,7 +1298,7 @@ body::before {
 
 .save-toast-check {
   flex-shrink: 0;
-  color: var(--orange-light);
+  color: var(--accent-light);
 }
 
 .save-toast.show .save-toast-check {
