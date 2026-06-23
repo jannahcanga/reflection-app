@@ -739,6 +739,129 @@ function ratingColor(v) {
   return ['#E4D9D2','#D6C6BC','#C2AEA3','#A8918A','#8A7370','#6B5658','#4A3A3F','#2A2024'][v];
 }
 
+// Anchored definitions for each area's 0-10 scale, keyed by area then level.
+// Levels not listed (1-4, 6-7) sit between the nearest defined anchors.
+const SCALE_LEVELS = ['10', '9', '8', '5', '0'];
+
+const SCALE_DEFINITIONS = {
+  physical: {
+    "10": `Trained with full effort and good form (or a swim/run that left me spent), calories tracked with balanced macros, 8+ hrs sleep, steady energy all day.`,
+    "9":  `Strong workout, ate clean, nearly 8 hrs sleep, energy high with one small dip.`,
+    "8":  `Got real movement in, ate reasonably well, slept enough, energy held through the day.`,
+    "5":  `Workout skipped or half-hearted, eating off-track, under-slept, clearly sluggish.`,
+    "0":  `No movement, ate carelessly and untracked, barely slept, drained and foggy all day.`
+  },
+  emotions: {
+    "10": `Beautiful state all day no matter what happened — negative feelings passed in seconds, focused on the present and what's possible, deeply grateful, outside events had no hold on me.`,
+    "9":  `Mostly beautiful state; a couple of dips but back within a minute; stayed forward-looking and grateful; events barely moved me.`,
+    "8":  `More good than not; negatives came but I caught them and recovered within minutes; generally present and grateful; events nudged me but didn't run the day.`,
+    "5":  `Stuck in a suffering state for long stretches; took hours to shake it; focus drifted to what's wrong; outside events clearly drove my mood.`,
+    "0":  `Suffering state most of the day; negativity lingered and built; fixed on what's wrong; felt at the mercy of whatever happened, with little gratitude.`
+  },
+  relationships: {
+    "10": `Fully present with no ulterior motive, understood what mattered to whoever I was with, gave real energy and love, appreciated even the tiniest things, actively tended my closest circle.`,
+    "9":  `Present and warm with nearly everyone; listened genuinely; gave generously and caught the small things; tended my closest people with maybe one missed beat.`,
+    "8":  `Genuinely present for the people who mattered; listened more than I performed; gave real energy and appreciated them; closest circle felt tended, if not perfectly.`,
+    "5":  `Half-present or listening with an agenda; gave leftovers; missed the small things; let my closest relationships coast.`,
+    "0":  `Distracted or absent all day; exchanges were transactional or impatient; little energy given; took my closest people for granted.`
+  },
+  time: {
+    "10": `In the driver's seat all day with a consciously chosen destination; obstacles and traffic came, but I recovered fast and picked my own route; never let the day or other people grab the wheel.`,
+    "9":  `Clear destination, firmly driving; a few detours or jams but I rerouted quickly; in control, with maybe one stretch on autopilot.`,
+    "8":  `Mostly steering, with a destination in mind; some traffic pulled me off course but I got back on; the day pushed, but I was the one driving.`,
+    "5":  `Half-driving, half-drifting; destination fuzzy; obstacles knocked me into reacting for long stretches; others grabbed the wheel more than once.`,
+    "0":  `Passenger all day; no destination, just wherever the day and everyone else took me; never took the wheel back.`
+  },
+  career: {
+    "10": `Worked full-force against a real, uncomfortable challenge toward my actual dreams; didn't stop when tired and did it well; brave and creative even in failure; all of it driven from a deep core of love.`,
+    "9":  `Meaningful, stretching work toward my goals with real craft; pushed through tiredness; courage and creativity present; working from love, maybe one stretch on autopilot.`,
+    "8":  `Did work that genuinely matters and moved something forward; held my standard when it got hard; love was under most of it, even if not every hour.`,
+    "5":  `Mostly mechanical or low-stakes; coasted when it got tiring; going through the motions more than creating; love felt distant.`,
+    "0":  `Lazy, or avoided the real work; quit the moment it got hard; no courage, no creativity, no love behind it.`
+  },
+  finances: {
+    "10": `Felt strong about money all day — no impulse buys, didn't cave to people; spending was intentional (within my ₱800 cap or planned ahead), and I moved toward the future where I could. Every choice served future me.`,
+    "9":  `Strong nearly all day; no impulse buys; spending intentional and capped; took a small step forward; one wobble at most.`,
+    "8":  `Mostly in control; spending stayed intentional and within cap (or planned); didn't cave to anything impulsive — even if I didn't actively invest. Choices served future me.`,
+    "5":  `The flimsy feeling crept in; said yes too easily; an impulse buy or blew past the cap with no plan; choices served the moment more than future me.`,
+    "0":  `Weak about money all day; caved to people and impulses; unplanned spending, no cap, no thought for later. Nothing served future me.`
+  },
+  celebrate: {
+    "10": `Gave something beyond myself freely — time, help, attention, or money — without needing anything back, even something small; paused to celebrate a win and actually felt it; ended in gratitude with a sense of "enough."`,
+    "9":  `Gave meaningfully to someone beyond myself; celebrated a win and mostly let it land; ended grateful, maybe rushing past one good moment.`,
+    "8":  `Gave something real to someone beyond myself; paused at least once to honor a win instead of charging on; ended more grateful than not.`,
+    "5":  `Gave little, or only when convenient; blew past my wins straight to the next task; ended counting what's still undone.`,
+    "0":  `Gave nothing beyond myself; no pause, no celebration; ended drained and ungrateful, seeing only what's missing.`
+  }
+};
+
+// Picks readable badge text against any ratingColor() background by luminance
+function readableTextColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#161616' : '#ffffff';
+}
+
+// Press-and-hold ladder — opened on pointerdown over an area name, closed on
+// pointerup/pointercancel anywhere (wired once, near the bottom of this file)
+function openScalePanel(area) {
+  setText('scale-panel-title', area);
+
+  const levelsEl = document.getElementById('scale-panel-levels');
+  levelsEl.innerHTML = '';
+
+  SCALE_LEVELS.forEach(level => {
+    const row = document.createElement('div');
+    row.className = 'scale-level-row' + (level === '8' ? ' goal' : '');
+
+    const color = ratingColor(Number(level));
+    const badge = document.createElement('span');
+    badge.className = 'scale-level-badge';
+    badge.textContent = level;
+    badge.style.backgroundColor = color;
+    badge.style.color = readableTextColor(color);
+
+    const content = document.createElement('div');
+    content.className = 'scale-level-content';
+
+    if (level === '8') {
+      const tag = document.createElement('span');
+      tag.className = 'scale-goal-tag';
+      tag.textContent = 'Goal';
+      content.appendChild(tag);
+    }
+
+    const def = document.createElement('p');
+    def.className = 'scale-level-def';
+    def.textContent = SCALE_DEFINITIONS[area][level];
+    content.appendChild(def);
+
+    row.appendChild(badge);
+    row.appendChild(content);
+    levelsEl.appendChild(row);
+  });
+
+  document.getElementById('scale-panel-overlay').classList.add('show');
+}
+
+function closeScalePanel() {
+  document.getElementById('scale-panel-overlay').classList.remove('show');
+}
+
+// Shows "hold a name..." hint for the first few times the rate page opens, then stops
+function maybeShowScaleHint() {
+  const KEY = 'scaleHintViews';
+  const views = parseInt(localStorage.getItem(KEY) || '0', 10);
+  if (views < 3) {
+    show('scale-hint');
+    localStorage.setItem(KEY, String(views + 1));
+  } else {
+    hide('scale-hint');
+  }
+}
+
 function todayKey() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -824,6 +947,7 @@ function openRateDay(key) {
 
   renderRateAreas();
   updateAvgDisplay();
+  maybeShowScaleHint();
   showScreen('rate-today-screen');
 }
 
@@ -845,6 +969,8 @@ function renderRateAreas() {
     const label = document.createElement('p');
     label.className = 'rate-area-label';
     label.textContent = area;
+    label.addEventListener('pointerdown', () => openScalePanel(area));
+    label.addEventListener('contextmenu', e => e.preventDefault());
     row.appendChild(label);
 
     const dotsRow = document.createElement('div');
@@ -924,6 +1050,8 @@ function openDayDetail(key, rating) {
     const name = document.createElement('span');
     name.className = 'detail-area-name';
     name.textContent = area;
+    name.addEventListener('pointerdown', () => openScalePanel(area));
+    name.addEventListener('contextmenu', e => e.preventDefault());
 
     const scoreWrap = document.createElement('div');
     scoreWrap.className = 'detail-area-score';
@@ -1676,6 +1804,10 @@ document.getElementById('detail-cal-btn').addEventListener('click', () => {
   buildCalendar();
   showScreen('rating-calendar-screen');
 });
+
+// Closes the held-open scale panel no matter where the pointer lifts/cancels
+window.addEventListener('pointerup', closeScalePanel);
+window.addEventListener('pointercancel', closeScalePanel);
 
 
 // ── Toolbox button wiring ─────────────────────────────────────────────────────
