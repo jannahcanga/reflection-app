@@ -13,8 +13,8 @@
 :root {
   /* Background + glow */
   --bg-base:   #F4ECE2;
-  --bg-glow-1: rgba(255, 157, 69, 0.32);
-  --bg-glow-2: rgba(242, 92, 5, 0.16);
+  --bg-glow-1: rgba(255, 145, 40, 0.36);
+  --bg-glow-2: rgba(255, 85, 0, 0.18);
 
   /* Glass (chrome: cards, panels, nav) */
   --glass-fill:      rgba(255, 255, 255, 0.45);
@@ -33,9 +33,9 @@
   --text-faint: #ABA197;
 
   /* Accent (orange) */
-  --accent:       #F25C05;
-  --accent-light: #FF9D45;
-  --accent-soft:  rgba(242, 92, 5, 0.12);
+  --accent:       #FB5A00;
+  --accent-light: #FFA64D;
+  --accent-soft:  rgba(251, 90, 0, 0.12);
 
   /* Solid surfaces — primary buttons, save-toast: deliberately not glass */
   --surface-solid:       #161616;
@@ -54,8 +54,8 @@
 
 :root[data-theme="dark"] {
   --bg-base:   #140D0A;
-  --bg-glow-1: rgba(239, 138, 60, 0.38);
-  --bg-glow-2: rgba(217, 98, 30, 0.20);
+  --bg-glow-1: rgba(255, 130, 40, 0.46);
+  --bg-glow-2: rgba(255, 85, 0, 0.26);
 
   --glass-fill:      rgba(255, 255, 255, 0.07);
   --glass-border:    rgba(255, 255, 255, 0.14);
@@ -69,9 +69,9 @@
   --text-muted: rgba(245, 239, 234, 0.6);
   --text-faint: rgba(245, 239, 234, 0.4);
 
-  --accent:       #EF8A3C;
-  --accent-light: #FFB066;
-  --accent-soft:  rgba(239, 138, 60, 0.18);
+  --accent:       #FF7A1F;
+  --accent-light: #FFAD5C;
+  --accent-soft:  rgba(255, 122, 31, 0.2);
 
   --surface-solid:       #2A2018;
   --surface-solid-text:  #F5EFEA;
@@ -832,6 +832,12 @@ body::before {
   transition: width 0.6s var(--ease-out), opacity 0.6s ease-out, filter 0.6s ease-out;
 }
 
+/* Higher specificity than .hidden alone needs, since .state-meter's own
+   display:flex is declared later in this file and would otherwise win */
+.state-meter.hidden {
+  display: none;
+}
+
 /* ── Floating bubble navigation ────────────────────────── */
 .tab-bar {
   position: fixed;
@@ -1042,7 +1048,7 @@ body::before {
   flex-shrink: 0;
 }
 
-/* ── Scale definitions panel (press-and-hold) ──────────── */
+/* ── Scale definitions panel (tap to open) ──────────────── */
 .rate-area-label,
 .detail-area-name {
   cursor: pointer;
@@ -1072,6 +1078,7 @@ body::before {
 
 .scale-panel-overlay.show {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Hard-coded, constant position — identical for every one of the 7 areas,
