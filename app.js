@@ -607,7 +607,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 
   const ratingGroup  = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
-  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen'];
+  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen', 'problem-list-screen', 'problem-detail-screen'];
   let activeTab = 'tab-home';
   if (ratingGroup.includes(id))  activeTab = 'tab-rating';
   if (toolboxGroup.includes(id)) activeTab = 'tab-toolbox';
@@ -675,7 +675,7 @@ function showSavedToast(message) {
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
 // safety net — export before deleting/re-adding the icon, import after.
 
-const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists'];
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems'];
 
 function exportBackup() {
   const dump = {};
@@ -1410,6 +1410,282 @@ function saveGratitudeList() {
 }
 
 
+// ── Toolbox: Problem Solver ──────────────────────────────────────────────────────
+// Each problem stays locked (can't be marked solved) until it has 20 solutions —
+// the lock is the point, it pushes past the first few obvious answers.
+
+const PENCIL_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+const TRASH_ICON  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+const CHECK_ICON  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const STAR_OUTLINE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+const STAR_FILLED_ICON  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+
+const SOLUTIONS_TO_UNLOCK = 20;
+
+let currentProblemId    = null;
+let editingSolutionIndex = null;
+
+function loadProblems() {
+  return JSON.parse(localStorage.getItem('toolboxProblems') || '[]');
+}
+
+function saveProblems(list) {
+  localStorage.setItem('toolboxProblems', JSON.stringify(list));
+}
+
+function findProblem(id) {
+  return loadProblems().find(p => p.id === id);
+}
+
+function openProblemList() {
+  document.getElementById('new-problem-input').value = '';
+  buildProblemList();
+  showScreen('problem-list-screen');
+}
+
+function buildProblemList() {
+  const problems = loadProblems();
+  renderProblemGroup('active-problems-list', problems.filter(p => !p.solvedAt), 'No active problems yet.');
+  renderProblemGroup('solved-problems-list', problems.filter(p => p.solvedAt), 'Nothing solved yet.');
+}
+
+function renderProblemGroup(containerId, list, emptyText) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = emptyText;
+    container.appendChild(empty);
+    return;
+  }
+
+  [...list].reverse().forEach(problem => {
+    const btn = document.createElement('button');
+    btn.className = 'problem-btn';
+
+    const title = document.createElement('span');
+    title.className = 'problem-btn-title';
+    title.textContent = problem.title;
+
+    const meta = document.createElement('span');
+    meta.className = 'problem-btn-meta' + (problem.solvedAt ? ' solved' : '');
+    meta.textContent = problem.solvedAt ? 'Solved' : problem.solutions.length + ' / ' + SOLUTIONS_TO_UNLOCK;
+
+    btn.appendChild(title);
+    btn.appendChild(meta);
+    btn.addEventListener('click', () => openProblemDetail(problem.id));
+    container.appendChild(btn);
+  });
+}
+
+function createProblem() {
+  const input = document.getElementById('new-problem-input');
+  const title = input.value.trim();
+  if (!title) return;
+
+  const problems = loadProblems();
+  const problem = {
+    id:        Date.now(),
+    title,
+    solutions: [],
+    createdAt: Date.now(),
+    solvedAt:  null,
+    chosen:    null
+  };
+  problems.push(problem);
+  saveProblems(problems);
+
+  input.value = '';
+  openProblemDetail(problem.id);
+}
+
+function openProblemDetail(id) {
+  currentProblemId     = id;
+  editingSolutionIndex = null;
+  renderProblemDetail();
+  showScreen('problem-detail-screen');
+}
+
+function renderProblemDetail() {
+  const problem = findProblem(currentProblemId);
+  if (!problem) { openProblemList(); return; }
+
+  setText('problem-detail-title', problem.title);
+  renderProblemSolutions(problem);
+
+  const count = problem.solutions.length;
+  setText('problem-solution-count', count + ' / ' + SOLUTIONS_TO_UNLOCK);
+
+  const note = document.getElementById('problem-unlock-note');
+  if (problem.solvedAt) {
+    note.textContent = 'Solved ' + formatDate(problem.solvedAt);
+  } else if (count >= SOLUTIONS_TO_UNLOCK) {
+    note.textContent = 'Unlocked — mark it solved whenever you’re ready.';
+  } else {
+    note.textContent = (SOLUTIONS_TO_UNLOCK - count) + ' more to unlock';
+  }
+
+  document.getElementById('problem-add-row').classList.toggle('hidden', !!problem.solvedAt);
+
+  const solveBtn = document.getElementById('problem-solve-btn');
+  solveBtn.classList.toggle('hidden', !!problem.solvedAt);
+  solveBtn.disabled = count < SOLUTIONS_TO_UNLOCK;
+}
+
+function renderProblemSolutions(problem) {
+  const list = document.getElementById('problem-solutions-list');
+  list.innerHTML = '';
+
+  const unlocked = problem.solutions.length >= SOLUTIONS_TO_UNLOCK;
+  const solved   = !!problem.solvedAt;
+
+  problem.solutions.forEach((text, i) => {
+    const row = document.createElement('div');
+    row.className = 'gratitude-item';
+
+    const num = document.createElement('span');
+    num.className = 'gratitude-item-num';
+    num.textContent = (i + 1) + '.';
+    row.appendChild(num);
+
+    if (!solved && editingSolutionIndex === i) {
+      const input = document.createElement('input');
+      input.className = 'search-input';
+      input.type  = 'text';
+      input.value = text;
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  commitSolutionEdit(problem.id, i, input.value);
+        if (e.key === 'Escape') { editingSolutionIndex = null; renderProblemDetail(); }
+      });
+      row.appendChild(input);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'icon-btn';
+      saveBtn.title = 'Save';
+      saveBtn.innerHTML = CHECK_ICON;
+      saveBtn.addEventListener('click', () => commitSolutionEdit(problem.id, i, input.value));
+      row.appendChild(saveBtn);
+    } else {
+      const label = document.createElement('span');
+      label.className = 'gratitude-item-text';
+      label.textContent = text;
+      row.appendChild(label);
+
+      if (problem.chosen === i) {
+        const tag = document.createElement('span');
+        tag.className = 'scale-goal-tag';
+        tag.textContent = 'Chosen';
+        row.appendChild(tag);
+      }
+
+      if (!solved) {
+        const actions = document.createElement('div');
+        actions.className = 'want-item-actions';
+
+        if (unlocked) {
+          const starBtn = document.createElement('button');
+          starBtn.className = 'icon-btn' + (problem.chosen === i ? ' starred' : '');
+          starBtn.title = problem.chosen === i ? 'Unstar' : 'Star as the one to act on';
+          starBtn.innerHTML = problem.chosen === i ? STAR_FILLED_ICON : STAR_OUTLINE_ICON;
+          starBtn.addEventListener('click', () => toggleChosenSolution(problem.id, i));
+          actions.appendChild(starBtn);
+        }
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn';
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = PENCIL_ICON;
+        editBtn.addEventListener('click', () => { editingSolutionIndex = i; renderProblemDetail(); });
+        actions.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'icon-btn';
+        deleteBtn.title = 'Delete';
+        deleteBtn.innerHTML = TRASH_ICON;
+        deleteBtn.addEventListener('click', () => deleteSolution(problem.id, i));
+        actions.appendChild(deleteBtn);
+
+        row.appendChild(actions);
+      }
+    }
+
+    list.appendChild(row);
+  });
+}
+
+function addSolution() {
+  const input = document.getElementById('problem-solution-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === currentProblemId);
+  if (!problem || problem.solvedAt) return;
+
+  problem.solutions.push(text);
+  saveProblems(problems);
+
+  input.value = '';
+  renderProblemDetail();
+  input.focus();
+}
+
+function commitSolutionEdit(id, index, newText) {
+  const text = newText.trim();
+  if (!text) return;
+
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === id);
+  if (!problem) return;
+
+  problem.solutions[index] = text;
+  saveProblems(problems);
+
+  editingSolutionIndex = null;
+  renderProblemDetail();
+}
+
+function deleteSolution(id, index) {
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === id);
+  if (!problem) return;
+
+  problem.solutions.splice(index, 1);
+
+  // Keep the starred index valid after a removal
+  if (problem.chosen === index)      problem.chosen = null;
+  else if (problem.chosen > index)   problem.chosen -= 1;
+
+  saveProblems(problems);
+
+  if (editingSolutionIndex === index) editingSolutionIndex = null;
+  renderProblemDetail();
+}
+
+function toggleChosenSolution(id, index) {
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === id);
+  if (!problem) return;
+
+  problem.chosen = problem.chosen === index ? null : index;
+  saveProblems(problems);
+  renderProblemDetail();
+}
+
+function solveProblem() {
+  const problems = loadProblems();
+  const problem  = problems.find(p => p.id === currentProblemId);
+  if (!problem || problem.solutions.length < SOLUTIONS_TO_UNLOCK) return;
+
+  problem.solvedAt = Date.now();
+  saveProblems(problems);
+  renderProblemDetail();
+  showSavedToast('Marked solved');
+}
+
+
 // ── Theme (light / dark) ────────────────────────────────────────────────────────
 // index.html has a small inline script that sets data-theme before first paint
 // (avoids a flash of the wrong theme); this just keeps it in sync after that.
@@ -1917,6 +2193,28 @@ document.getElementById('gratitude-save-btn').addEventListener('click', saveGrat
 document.getElementById('gratitude-back-btn').addEventListener('click', () => {
   showScreen('toolbox-screen');
 });
+
+
+// ── Problem Solver button wiring ──────────────────────────────────────────────
+
+document.getElementById('open-problem-solver-btn').addEventListener('click', openProblemList);
+
+document.getElementById('new-problem-btn').addEventListener('click', createProblem);
+document.getElementById('new-problem-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createProblem();
+});
+
+document.getElementById('problem-list-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
+
+document.getElementById('problem-add-solution-btn').addEventListener('click', addSolution);
+document.getElementById('problem-solution-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addSolution();
+});
+
+document.getElementById('problem-solve-btn').addEventListener('click', solveProblem);
+document.getElementById('problem-detail-back-btn').addEventListener('click', openProblemList);
 
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
