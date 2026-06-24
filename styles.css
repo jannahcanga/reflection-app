@@ -109,7 +109,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: calc(env(safe-area-inset-top) + 40px) 24px 144px;
+  padding: calc(env(safe-area-inset-top) + 56px) 24px 144px;
   position: relative;
   transition: color 0.2s ease-out;
 }
@@ -223,28 +223,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  position: relative;
-}
-
-.saying-block > *:not(.hero-orb) {
-  position: relative;
-  z-index: 1;
-}
-
-/* Soft glow built entirely from gradient transparency, not filter: blur() —
-   Safari can let a blurred filtered child leak past an ancestor's
-   overflow:hidden + border-radius clip at the corner it bleeds toward */
-.hero-orb {
-  position: absolute;
-  top: -50px;
-  right: -50px;
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--accent-light), var(--accent) 45%, transparent 75%);
-  opacity: 0.55;
-  z-index: 0;
-  pointer-events: none;
 }
 
 .saying {
