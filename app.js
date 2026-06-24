@@ -795,6 +795,106 @@ const SCALE_DEFINITIONS = {
   }
 };
 
+// ── Mental State Meter ───────────────────────────────────────────────────────
+// 100% = Peak State (beautiful state), 0% = Suffering State (the default
+// without active effort). Decays continuously toward 0; using a tool boosts
+// it back up. See applyMeterBoost() — every tool calls this on completion.
+
+const METER = {
+  DECAY_HOURS: 72,          // 100% -> 0% takes this many hours (3 days)
+  REPEAT_FACTOR: 0.7,       // each re-use of the SAME tool within the window is worth 70% of the last
+  REPEAT_WINDOW_HOURS: 24,  // repeat penalty resets after this; daily use always counts fresh
+  BOOSTS: {                 // first-use boost per tool (points added, meter caps at 100)
+    gratitude: 16,          // 20-things gratitude — pays out only when the list reaches 20
+    problemSolver: 13,      // pays out only when a problem reaches 20 solutions
+    needsCalculator: 11,    // FUTURE tool — hook wired now, the tool comes later
+    emotions: 10,
+    lifeRating: 9,          // on saving a day's rating
+    wishlist: 7,            // "everything I could ever want" — on adding a want
+    quotes: 5,              // on writing a quote entry
+  },
+};
+
+function loadMeterState() {
+  const storedValue     = localStorage.getItem('meterValue');
+  const storedUpdatedAt = localStorage.getItem('meterUpdatedAt');
+  return {
+    // null-checked rather than `|| default` — a legitimately stored 0 must
+    // not be treated as "missing" and silently replaced with Date.now()
+    value:     storedValue !== null ? parseFloat(storedValue) : 0,
+    updatedAt: storedUpdatedAt !== null ? parseInt(storedUpdatedAt, 10) : Date.now(),
+    log:       JSON.parse(localStorage.getItem('meterToolLog') || '[]')
+  };
+}
+
+function saveMeterState(state) {
+  localStorage.setItem('meterValue', String(state.value));
+  localStorage.setItem('meterUpdatedAt', String(state.updatedAt));
+  localStorage.setItem('meterToolLog', JSON.stringify(state.log));
+}
+
+// Continuous linear decay from the last-saved value/timestamp to right now
+function currentMeterValue() {
+  const { value, updatedAt } = loadMeterState();
+  const hoursSince = (Date.now() - updatedAt) / 3600000;
+  const decayed = value - (100 / METER.DECAY_HOURS) * hoursSince;
+  return Math.max(0, Math.min(100, decayed));
+}
+
+// Called by every tool on completion (gratitude/problemSolver only call this
+// once their respective 20-item/20-solution gate is met)
+function applyMeterBoost(toolKey) {
+  const state = loadMeterState();
+  const current = currentMeterValue();
+  const now = Date.now();
+
+  const windowMs = METER.REPEAT_WINDOW_HOURS * 3600000;
+  state.log = state.log.filter(e => now - e.timestamp < windowMs);
+
+  const usesInWindow = state.log.filter(e => e.tool === toolKey).length;
+  const base  = METER.BOOSTS[toolKey] || 0;
+  const boost = base * Math.pow(METER.REPEAT_FACTOR, usesInWindow);
+
+  state.value     = Math.min(100, current + boost);
+  state.updatedAt = now;
+  state.log.push({ tool: toolKey, timestamp: now });
+
+  saveMeterState(state);
+  renderMeter();
+}
+
+function meterStateLabel(pct) {
+  if (pct <= 25) return 'Suffering State';
+  if (pct <= 50) return 'Surviving';
+  if (pct <= 80) return 'Beautiful State';
+  return 'Peak State';
+}
+
+// Glow (box-shadow, not a clipped inner layer) and fill saturation/opacity
+// both scale continuously with the value — dim and cold near 0, a strong
+// bloom by 100. Called on boot, on every boost, and on a 60s tick so the
+// number visibly keeps decaying while the app sits open.
+function renderMeter() {
+  const pct = Math.round(currentMeterValue());
+
+  setText('state-meter-label', meterStateLabel(pct));
+  setText('state-meter-pct', pct + '%');
+
+  const fill = document.getElementById('state-meter-fill');
+  fill.style.width    = pct + '%';
+  fill.style.opacity  = (0.35 + (pct / 100) * 0.65).toFixed(2);
+  fill.style.filter   = 'saturate(' + Math.round(20 + pct * 0.8) + '%)';
+
+  const t      = pct / 100;
+  const blur   = Math.round(8 + t * 46);
+  const spread = Math.round(t * 6);
+  const alpha  = Math.round((0.05 + t * 0.55) * 100);
+  const glow   = '0 0 ' + blur + 'px ' + spread + 'px color-mix(in srgb, var(--accent) ' + alpha + '%, transparent)';
+
+  document.getElementById('state-meter').style.boxShadow =
+    glow + ', 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight)';
+}
+
 // Picks readable badge text against any ratingColor() background by luminance
 function readableTextColor(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -2219,6 +2319,9 @@ document.getElementById('problem-detail-back-btn').addEventListener('click', ope
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 showHome();
+
+renderMeter();
+setInterval(renderMeter, 60000); // keep the decay visibly ticking while the app sits open
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
