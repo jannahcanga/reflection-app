@@ -53,6 +53,12 @@
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
               </button>
+              <button id="my-quotes-btn" class="icon-btn" title="My quotes">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div id="write-about-area" class="hidden">
@@ -180,6 +186,30 @@
       </div>
     </div>
 
+    <!-- MY QUOTES: quotes you've added yourself — list + add/edit/delete -->
+    <div id="my-quotes-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">My Quotes</p>
+        <div id="my-quotes-list" class="want-items"></div>
+        <button id="add-my-quote-btn" class="btn">Add quote</button>
+        <button id="my-quotes-home-btn" class="btn secondary">Home</button>
+      </div>
+    </div>
+
+    <!-- MY QUOTES: add/edit form -->
+    <div id="quote-form-screen" class="screen">
+      <div class="card glass">
+        <p id="quote-form-title" class="section-label screen-title">Add quote</p>
+        <textarea id="quote-text-input" class="answer-input" placeholder="The quote itself..."></textarea>
+        <input id="quote-author-input" class="search-input" type="text" placeholder="Author (optional)">
+        <button id="save-my-quote-btn" class="btn accent">Save</button>
+        <div class="btn-row">
+          <button id="delete-my-quote-btn" class="btn secondary hidden">Delete</button>
+          <button id="cancel-my-quote-btn" class="btn secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- LIFE RATING: CALENDAR VIEW -->
     <div id="rating-calendar-screen" class="screen">
       <div class="card glass">
@@ -208,7 +238,7 @@
           <p id="rate-today-date" class="section-label"></p>
           <p id="rate-avg-display" class="rate-avg">—</p>
         </div>
-        <p id="scale-hint" class="scale-hint hidden">Hold a name to see what each score means</p>
+        <p id="scale-hint" class="scale-hint hidden">Tap a name to see what each score means.</p>
         <div id="rate-areas-list" class="rate-areas"></div>
         <button id="save-rating-btn" class="btn accent">Save</button>
         <button id="rating-cal-btn" class="btn secondary">Back to calendar</button>
