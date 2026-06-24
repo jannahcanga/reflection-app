@@ -885,14 +885,21 @@ function renderMeter() {
   fill.style.opacity  = (0.35 + (pct / 100) * 0.65).toFixed(2);
   fill.style.filter   = 'saturate(' + Math.round(20 + pct * 0.8) + '%)';
 
-  const t      = pct / 100;
-  const blur   = Math.round(8 + t * 46);
-  const spread = Math.round(t * 6);
-  const alpha  = Math.round((0.05 + t * 0.55) * 100);
-  const glow   = '0 0 ' + blur + 'px ' + spread + 'px color-mix(in srgb, var(--accent) ' + alpha + '%, transparent)';
+  // Two stacked glow layers (tight+bright, wide+soft) for a fuller bloom —
+  // both fade to almost nothing at 0% and stack into a strong halo by 100%
+  const t          = pct / 100;
+  const innerBlur  = Math.round(10 + t * 34);
+  const innerSpread = Math.round(t * 4);
+  const innerAlpha = Math.round((0.08 + t * 0.52) * 100);
+  const outerBlur  = Math.round(28 + t * 84);
+  const outerSpread = Math.round(t * 12);
+  const outerAlpha = Math.round((0.04 + t * 0.36) * 100);
+
+  const innerGlow = '0 0 ' + innerBlur + 'px ' + innerSpread + 'px color-mix(in srgb, var(--accent) ' + innerAlpha + '%, transparent)';
+  const outerGlow = '0 0 ' + outerBlur + 'px ' + outerSpread + 'px color-mix(in srgb, var(--accent) ' + outerAlpha + '%, transparent)';
 
   document.getElementById('state-meter').style.boxShadow =
-    glow + ', 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight)';
+    innerGlow + ', ' + outerGlow + ', 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight)';
 }
 
 // Picks readable badge text against any ratingColor() background by luminance
