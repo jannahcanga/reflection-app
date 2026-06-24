@@ -110,7 +110,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: calc(env(safe-area-inset-top) + 56px) 24px 144px;
+  padding: calc(env(safe-area-inset-top) + 40px) 24px 144px;
   position: relative;
   transition: color 0.2s ease-out, background-color 0.2s ease-out;
 }
