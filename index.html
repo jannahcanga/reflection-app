@@ -31,7 +31,7 @@
 
     <!-- HOME SCREEN: saying + write-about + emotion picker + nav buttons -->
     <div id="home-screen" class="screen active">
-      <div class="card glass"
+      <div class="card glass">
 
         <div class="saying-block">
           <div class="hero-orb" aria-hidden="true"></div>
@@ -103,7 +103,7 @@
 
     <!-- QUESTION SCREEN: one question at a time -->
     <div id="question-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
 
         <div class="question-meta">
           <p id="emotion-label" class="emotion-tag"></p>
@@ -129,7 +129,7 @@
 
     <!-- DONE SCREEN -->
     <div id="done-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <div>
           <p class="done-message">That's it for today.</p>
           <p class="done-sub">Your reflection has been saved.</p>
@@ -144,7 +144,7 @@
 
     <!-- ARCHIVE SCREEN: all past entries, grouped by date -->
     <div id="archive-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p class="section-label screen-title">Journal</p>
         <div id="entries-list"></div>
         <button id="archive-home-btn" class="btn secondary">Home</button>
@@ -153,7 +153,7 @@
 
     <!-- QUOTES BROWSER: alphabetical list of sources -->
     <div id="quotes-browser-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p class="section-label screen-title">Quotes by</p>
         <div class="input-glass">
           <svg class="input-glass-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -169,7 +169,7 @@
 
     <!-- QUOTE VIEWER: one quote at a time with navigation -->
     <div id="quote-viewer-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p id="viewer-source" class="viewer-source"></p>
         <p id="viewer-text" class="saying"></p>
         <p id="viewer-count" class="progress"></p>
@@ -183,7 +183,7 @@
 
     <!-- LIFE RATING: CALENDAR VIEW -->
     <div id="rating-calendar-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <div class="cal-header">
           <button id="cal-prev-btn" class="icon-btn" title="Previous month">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -204,7 +204,7 @@
 
     <!-- LIFE RATING: RATE A DAY -->
     <div id="rate-today-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <div>
           <p id="rate-today-date" class="section-label"></p>
           <p id="rate-avg-display" class="rate-avg">—</p>
@@ -218,7 +218,7 @@
 
     <!-- LIFE RATING: DAY DETAIL (read-only) -->
     <div id="day-detail-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <div>
           <p id="detail-date" class="section-label"></p>
           <p id="detail-avg" class="rate-avg"></p>
@@ -231,18 +231,19 @@
 
     <!-- TOOLBOX: landing list of tools -->
     <div id="toolbox-screen" class="screen">
-      <div class="card glass"
-        <p class="section-label screen-title">Toolbox</p>
+      <div class="card glass">
+        <p class="section-label screen-title toolbox-title">Toolbox</p>
         <div class="toolbox-tools">
           <button id="open-want-list-btn" class="person-btn">Everything I Could Ever Want</button>
           <button id="open-gratitude-btn" class="person-btn">20 Things I'm Grateful For</button>
+          <button id="open-problem-solver-btn" class="person-btn">Problem Solver</button>
         </div>
       </div>
     </div>
 
     <!-- TOOLBOX: Everything I Could Ever Want — list + totals -->
     <div id="want-list-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p class="section-label screen-title">Everything I Could Ever Want</p>
 
         <div class="want-view-row">
@@ -272,7 +273,7 @@
 
     <!-- TOOLBOX: Everything I Could Ever Want — add/edit form -->
     <div id="want-form-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p id="want-form-title" class="section-label screen-title">Add item</p>
 
         <input id="want-name-input" class="search-input" type="text" placeholder="What do you want?">
@@ -300,7 +301,7 @@
 
     <!-- TOOLBOX: 20 Things I'm Grateful For -->
     <div id="gratitude-screen" class="screen">
-      <div class="card glass"
+      <div class="card glass">
         <p class="section-label screen-title">20 Things I'm Grateful For</p>
         <p class="light-subtext">Add one at a time — the list saves once all 20 are filled in.</p>
 
@@ -318,31 +319,74 @@
       </div>
     </div>
 
+    <!-- TOOLBOX: Problem Solver — list of problems, active vs solved -->
+    <div id="problem-list-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Problem Solver</p>
+
+        <div class="gratitude-input-row">
+          <input id="new-problem-input" class="search-input" type="text" placeholder="What's the problem?">
+          <button id="new-problem-btn" class="btn secondary">Add</button>
+        </div>
+
+        <div>
+          <p class="section-label">Active</p>
+          <div id="active-problems-list" class="problem-group"></div>
+        </div>
+
+        <div>
+          <p class="section-label">Solved</p>
+          <div id="solved-problems-list" class="problem-group"></div>
+        </div>
+
+        <button id="problem-list-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: Problem Solver — one problem, locked until 20 solutions -->
+    <div id="problem-detail-screen" class="screen">
+      <div class="card glass">
+        <p id="problem-detail-title" class="screen-title"></p>
+
+        <div>
+          <p id="problem-solution-count" class="progress"></p>
+          <p id="problem-unlock-note" class="light-subtext"></p>
+        </div>
+
+        <div id="problem-solutions-list" class="gratitude-list"></div>
+
+        <div id="problem-add-row" class="gratitude-input-row">
+          <input id="problem-solution-input" class="search-input" type="text" placeholder="Another possible solution...">
+          <button id="problem-add-solution-btn" class="btn secondary">Add</button>
+        </div>
+
+        <button id="problem-solve-btn" class="btn accent" disabled>Mark solved</button>
+        <button id="problem-detail-back-btn" class="btn secondary">Back to Problem Solver</button>
+      </div>
+    </div>
+
     <!-- BOTTOM NAVIGATION TAB BAR -->
     <nav class="tab-bar glass">
-      <button class="tab-btn active" id="tab-home" title="Home">
+      <button class="tab-btn active" id="tab-home" title="Home" aria-label="Home">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
           <path d="M9 21V12h6v9"/>
         </svg>
-        <span>Home</span>
       </button>
-      <button class="tab-btn" id="tab-rating" title="Life Rating">
+      <button class="tab-btn" id="tab-rating" title="Life Rating" aria-label="Life Rating">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="3" y1="9" x2="21" y2="9"/>
           <line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
         </svg>
-        <span>Life Rating</span>
       </button>
-      <button class="tab-btn" id="tab-toolbox" title="Toolbox">
+      <button class="tab-btn" id="tab-toolbox" title="Toolbox" aria-label="Toolbox">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="7" width="20" height="13" rx="2"/>
           <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
           <line x1="2" y1="13" x2="22" y2="13"/>
         </svg>
-        <span>Toolbox</span>
       </button>
     </nav>
 
