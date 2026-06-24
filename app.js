@@ -590,6 +590,24 @@ const sayingsData = [
 ];
 
 
+// ── My quotes (user-added, persisted) ───────────────────────────────────────────
+// Kept separate from the hardcoded sayingsData above — allQuotes() merges them
+// at read time everywhere quotes get picked/grouped, so nothing needs to
+// special-case "is this built-in or mine" except editing/deleting.
+
+function loadMyQuotes() {
+  return JSON.parse(localStorage.getItem('myQuotes') || '[]');
+}
+
+function saveMyQuotes(list) {
+  localStorage.setItem('myQuotes', JSON.stringify(list));
+}
+
+function allQuotes() {
+  return sayingsData.concat(loadMyQuotes());
+}
+
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentEmotion   = null;
 let currentQuestions = [];
@@ -614,6 +632,11 @@ function showScreen(id) {
 
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(activeTab).classList.add('active');
+
+  // The state meter only stays on the three main landing screens — it steps
+  // aside on every sub-screen (rating a day, toolbox tools, etc.)
+  const meterScreens = ['home-screen', 'rating-calendar-screen', 'toolbox-screen'];
+  document.getElementById('state-meter').classList.toggle('hidden', !meterScreens.includes(id));
 }
 
 // Fisher-Yates shuffle — returns a new shuffled array
@@ -675,7 +698,7 @@ function showSavedToast(message) {
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
 // safety net — export before deleting/re-adding the icon, import after.
 
-const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems'];
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems', 'myQuotes'];
 
 function exportBackup() {
   const dump = {};
@@ -863,6 +886,14 @@ function applyMeterBoost(toolKey) {
   renderMeter();
 }
 
+// HOOK FOR A FUTURE TOOL — the Needs Calculator doesn't exist yet. Once it's
+// built, call applyMeterBoost('needsCalculator') from its completion point,
+// the same way the six tools above do. This wrapper is just a clear, greppable
+// landing spot until then.
+function applyNeedsCalculatorBoost() {
+  applyMeterBoost('needsCalculator');
+}
+
 function meterStateLabel(pct) {
   if (pct <= 25) return 'Suffering State';
   if (pct <= 50) return 'Surviving';
@@ -911,9 +942,21 @@ function readableTextColor(hex) {
   return luminance > 0.6 ? '#161616' : '#ffffff';
 }
 
-// Press-and-hold ladder — opened on pointerdown over an area name, closed on
-// pointerup/pointercancel anywhere (wired once, near the bottom of this file)
+// Tap-to-open ladder — stays open at its own pace, closed by tapping the
+// scrim or the same name again (wired via .scale-panel-overlay/.scale-panel
+// click handlers near the bottom of this file)
+let openScaleArea = null;
+
+function toggleScalePanel(area) {
+  if (openScaleArea === area) {
+    closeScalePanel();
+  } else {
+    openScalePanel(area);
+  }
+}
+
 function openScalePanel(area) {
+  openScaleArea = area;
   setText('scale-panel-title', area);
 
   const levelsEl = document.getElementById('scale-panel-levels');
@@ -954,10 +997,11 @@ function openScalePanel(area) {
 }
 
 function closeScalePanel() {
+  openScaleArea = null;
   document.getElementById('scale-panel-overlay').classList.remove('show');
 }
 
-// Shows "hold a name..." hint for the first few times the rate page opens, then stops
+// Shows "tap a name..." hint for the first few times the rate page opens, then stops
 function maybeShowScaleHint() {
   const KEY = 'scaleHintViews';
   const views = parseInt(localStorage.getItem(KEY) || '0', 10);
@@ -1076,8 +1120,7 @@ function renderRateAreas() {
     const label = document.createElement('p');
     label.className = 'rate-area-label';
     label.textContent = area;
-    label.addEventListener('pointerdown', () => openScalePanel(area));
-    label.addEventListener('contextmenu', e => e.preventDefault());
+    label.addEventListener('click', () => toggleScalePanel(area));
     row.appendChild(label);
 
     const dotsRow = document.createElement('div');
@@ -1127,6 +1170,7 @@ function saveRating() {
     avg:   parseFloat(avg.toFixed(2))
   };
   localStorage.setItem('lifeRatings', JSON.stringify(ratings));
+  applyMeterBoost('lifeRating');
   buildCalendar();
   showScreen('rating-calendar-screen');
   showSavedToast('Rating saved');
@@ -1157,8 +1201,7 @@ function openDayDetail(key, rating) {
     const name = document.createElement('span');
     name.className = 'detail-area-name';
     name.textContent = area;
-    name.addEventListener('pointerdown', () => openScalePanel(area));
-    name.addEventListener('contextmenu', e => e.preventDefault());
+    name.addEventListener('click', () => toggleScalePanel(area));
 
     const scoreWrap = document.createElement('div');
     scoreWrap.className = 'detail-area-score';
@@ -1410,6 +1453,7 @@ function saveWant() {
       currency: selectedWantCurrency,
       category
     });
+    applyMeterBoost('wishlist'); // only on adding a new want, not editing one
   }
 
   saveToolbox(data);
@@ -1510,6 +1554,7 @@ function saveGratitudeList() {
   const existing = JSON.parse(localStorage.getItem('gratitudeLists') || '[]');
   existing.unshift(entry);
   localStorage.setItem('gratitudeLists', JSON.stringify(existing));
+  applyMeterBoost('gratitude'); // only fires here, gated by the ===20 check above
 
   gratitudeItems = [];
   showScreen('toolbox-screen');
@@ -1788,6 +1833,7 @@ function solveProblem() {
 
   problem.solvedAt = Date.now();
   saveProblems(problems);
+  applyMeterBoost('problemSolver'); // only fires here, gated by the >=20 check above
   renderProblemDetail();
   showSavedToast('Marked solved');
 }
@@ -1824,7 +1870,8 @@ applyTheme(document.documentElement.getAttribute('data-theme'));
 // ── Home screen ───────────────────────────────────────────────────────────────
 
 function showHome() {
-  currentSaying = sayingsData[Math.floor(Math.random() * sayingsData.length)];
+  const quotes = allQuotes();
+  currentSaying = quotes[Math.floor(Math.random() * quotes.length)];
   setHtml('saying-text',   formatText(currentSaying.text));
   setText('saying-source', '— ' + currentSaying.source);
 
@@ -1836,9 +1883,10 @@ function showHome() {
 }
 
 document.getElementById('shuffle-btn').addEventListener('click', () => {
+  const quotes = allQuotes();
   let next;
-  do { next = sayingsData[Math.floor(Math.random() * sayingsData.length)]; }
-  while (sayingsData.length > 1 && next === currentSaying);
+  do { next = quotes[Math.floor(Math.random() * quotes.length)]; }
+  while (quotes.length > 1 && next === currentSaying);
   currentSaying = next;
   setHtml('saying-text',   formatText(currentSaying.text));
   setText('saying-source', '— ' + currentSaying.source);
@@ -1871,6 +1919,7 @@ document.getElementById('save-saying-btn').addEventListener('click', () => {
   const existing = JSON.parse(localStorage.getItem('sayingReflections') || '[]');
   existing.unshift(entry);
   localStorage.setItem('sayingReflections', JSON.stringify(existing));
+  applyMeterBoost('quotes');
 
   hide('write-about-area');
   document.getElementById('saying-reflection-input').value = '';
@@ -1968,6 +2017,7 @@ function saveReflection() {
   const existing = JSON.parse(localStorage.getItem('reflections') || '[]');
   existing.unshift(entry);
   localStorage.setItem('reflections', JSON.stringify(existing));
+  applyMeterBoost('emotions');
 }
 
 
@@ -2067,7 +2117,7 @@ function buildArchive() {
 let allGroups = {};   // populated once, reused for search filtering
 
 function buildPeopleList(filter = '') {
-  allGroups = groupBySource(sayingsData);
+  allGroups = groupBySource(allQuotes());
   const list = document.getElementById('people-list');
   list.innerHTML = '';
 
@@ -2112,6 +2162,111 @@ function renderViewerQuote() {
   setText('viewer-count', (viewerIndex + 1) + ' of ' + viewerQuotes.length);
 }
 
+
+// ── My Quotes: add/edit/delete your own ─────────────────────────────────────────
+
+let editingQuoteId = null;   // null = adding a new quote, otherwise the id being edited
+
+function openMyQuotesScreen() {
+  buildMyQuotesList();
+  showScreen('my-quotes-screen');
+}
+
+function buildMyQuotesList() {
+  const quotes = loadMyQuotes();
+  const list = document.getElementById('my-quotes-list');
+  list.innerHTML = '';
+
+  if (quotes.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = "You haven't added any quotes yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  quotes.forEach(q => {
+    const row = document.createElement('div');
+    row.className = 'want-item';
+
+    const top = document.createElement('div');
+    top.className = 'want-item-top';
+
+    const name = document.createElement('span');
+    name.className = 'want-item-name';
+    name.textContent = q.source;
+
+    const actions = document.createElement('div');
+    actions.className = 'want-item-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'icon-btn';
+    editBtn.title = 'Edit';
+    editBtn.innerHTML = PENCIL_ICON;
+    editBtn.addEventListener('click', () => openQuoteForm(q));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn';
+    deleteBtn.title = 'Delete';
+    deleteBtn.innerHTML = TRASH_ICON;
+    deleteBtn.addEventListener('click', () => {
+      if (!confirm('Delete this quote?')) return;
+      saveMyQuotes(loadMyQuotes().filter(item => item.id !== q.id));
+      buildMyQuotesList();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    top.appendChild(name);
+    top.appendChild(actions);
+
+    const text = document.createElement('p');
+    text.className = 'want-item-meta';
+    text.textContent = q.text;
+
+    row.appendChild(top);
+    row.appendChild(text);
+    list.appendChild(row);
+  });
+}
+
+function openQuoteForm(quote) {
+  editingQuoteId = quote ? quote.id : null;
+
+  setText('quote-form-title', quote ? 'Edit quote' : 'Add quote');
+  document.getElementById('quote-text-input').value   = quote ? quote.text : '';
+  // "Bits" is our internal fallback for a blank author — don't show it as if typed
+  document.getElementById('quote-author-input').value = quote && quote.source !== 'Bits' ? quote.source : '';
+  document.getElementById('delete-my-quote-btn').classList.toggle('hidden', !quote);
+
+  showScreen('quote-form-screen');
+}
+
+function saveMyQuote() {
+  const text   = document.getElementById('quote-text-input').value.trim();
+  const author = document.getElementById('quote-author-input').value.trim();
+  if (!text) return;
+
+  const quotes = loadMyQuotes();
+
+  if (editingQuoteId) {
+    const existing = quotes.find(q => q.id === editingQuoteId);
+    existing.text   = text;
+    existing.source = author || 'Bits';
+  } else {
+    quotes.push({
+      id:     Date.now(),
+      text,
+      source: author || 'Bits'
+    });
+  }
+
+  saveMyQuotes(quotes);
+  buildMyQuotesList();
+  showScreen('my-quotes-screen');
+  showSavedToast('Quote saved');
+}
+
 // Live search
 document.getElementById('search-input').addEventListener('input', e => {
   buildPeopleList(e.target.value);
@@ -2124,6 +2279,24 @@ document.getElementById('browse-quotes-btn').addEventListener('click', () => {
   document.getElementById('search-input').value = '';
   buildPeopleList();
   showScreen('quotes-browser-screen');
+});
+
+document.getElementById('my-quotes-btn').addEventListener('click', openMyQuotesScreen);
+document.getElementById('add-my-quote-btn').addEventListener('click', () => openQuoteForm(null));
+document.getElementById('my-quotes-home-btn').addEventListener('click', showHome);
+document.getElementById('save-my-quote-btn').addEventListener('click', saveMyQuote);
+
+document.getElementById('cancel-my-quote-btn').addEventListener('click', () => {
+  buildMyQuotesList();
+  showScreen('my-quotes-screen');
+});
+
+document.getElementById('delete-my-quote-btn').addEventListener('click', () => {
+  if (!editingQuoteId) return;
+  if (!confirm('Delete this quote?')) return;
+  saveMyQuotes(loadMyQuotes().filter(q => q.id !== editingQuoteId));
+  buildMyQuotesList();
+  showScreen('my-quotes-screen');
 });
 
 document.getElementById('archives-btn').addEventListener('click', () => {
@@ -2216,9 +2389,10 @@ document.getElementById('detail-cal-btn').addEventListener('click', () => {
   showScreen('rating-calendar-screen');
 });
 
-// Closes the held-open scale panel no matter where the pointer lifts/cancels
-window.addEventListener('pointerup', closeScalePanel);
-window.addEventListener('pointercancel', closeScalePanel);
+// Tapping the scrim closes the panel; tapping inside it does not (stopped
+// before it can bubble up to the scrim's own listener)
+document.getElementById('scale-panel-overlay').addEventListener('click', closeScalePanel);
+document.querySelector('#scale-panel-overlay .scale-panel').addEventListener('click', e => e.stopPropagation());
 
 
 // ── Toolbox button wiring ─────────────────────────────────────────────────────
