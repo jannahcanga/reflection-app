@@ -105,13 +105,14 @@ html {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
+  background: var(--bg-base);
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: calc(env(safe-area-inset-top) + 56px) 24px 144px;
   position: relative;
-  transition: color 0.2s ease-out;
+  transition: color 0.2s ease-out, background-color 0.2s ease-out;
 }
 
 /* Fixed-position glow layer instead of background-attachment:fixed — iOS Safari
