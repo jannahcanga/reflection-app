@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v14';
 const CACHE = 'reflection-cache-' + CACHE_VERSION;
 
 // App shell — changes with every code update, always fetched fresh when online
@@ -12,7 +12,8 @@ const APP_SHELL = [
 
 // Assets that never change once published — safe to serve straight from cache
 const STATIC_ASSETS = [
-  '/reflection-app/icon.png'
+  '/reflection-app/icon.png',
+  '/reflection-app/fonts/SpaceGrotesk-Bold.woff2'
 ];
 
 const ASSETS = APP_SHELL.concat(STATIC_ASSETS);
