@@ -109,7 +109,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 24px 144px;
+  padding: calc(env(safe-area-inset-top) + 40px) 24px 144px;
   position: relative;
   transition: color 0.2s ease-out;
 }
@@ -231,15 +231,17 @@ body::before {
   z-index: 1;
 }
 
+/* Soft glow built entirely from gradient transparency, not filter: blur() —
+   Safari can let a blurred filtered child leak past an ancestor's
+   overflow:hidden + border-radius clip at the corner it bleeds toward */
 .hero-orb {
   position: absolute;
-  top: -36px;
-  right: -24px;
-  width: 170px;
-  height: 170px;
+  top: -50px;
+  right: -50px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--accent-light), var(--accent) 72%);
-  filter: blur(36px);
+  background: radial-gradient(circle at 35% 30%, var(--accent-light), var(--accent) 45%, transparent 75%);
   opacity: 0.55;
   z-index: 0;
   pointer-events: none;
@@ -1008,15 +1010,11 @@ body::before {
   text-align: center;
 }
 
+/* Just a dimming scrim now — it no longer lays out or positions the panel */
 .scale-panel-overlay {
   position: fixed;
   inset: 0;
   z-index: 500;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 20px;
-  padding-top: calc(env(safe-area-inset-top) + 56px);
   background: rgba(0, 0, 0, 0.16);
   opacity: 0;
   pointer-events: none;
@@ -1027,21 +1025,27 @@ body::before {
   opacity: 1;
 }
 
-/* Anchored near the top regardless of which area name is held, so a thumb
-   pressing the row (and the hand behind it) never covers the definitions */
+/* Hard-coded, constant position — identical for every one of the 7 areas,
+   whether you're holding Physical (pyramid base, bottom of screen) or
+   Celebrate (apex, top of screen). This is fixed to the viewport via its own
+   top/left, completely independent of the pressed element's position, index,
+   or tier — app.js only ever toggles .show and fills in text/colors. */
 .scale-panel {
-  width: 100%;
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  left: 50%;
+  width: calc(100% - 40px);
   max-width: 300px;
   max-height: 70vh;
   overflow-y: auto;
   border-radius: var(--r-md);
   padding: 16px 14px;
-  transform: scale(0.96) translateY(-6px);
+  transform: translateX(-50%) scale(0.96) translateY(-6px);
   transition: transform 0.15s var(--ease-out);
 }
 
 .scale-panel-overlay.show .scale-panel {
-  transform: scale(1) translateY(0);
+  transform: translateX(-50%) scale(1) translateY(0);
 }
 
 .scale-panel-title {
