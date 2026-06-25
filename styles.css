@@ -14,7 +14,7 @@
   /* Background + glow */
   --bg-base:   #F4ECE2;
   --bg-glow-1: rgba(255, 145, 40, 0.36);
-  --bg-glow-2: rgba(255, 85, 0, 0.18);
+  --bg-glow-2: rgba(255, 85, 0, 0.30);
 
   /* Glass (chrome: cards, panels, nav) */
   --glass-fill:      rgba(255, 255, 255, 0.45);
@@ -50,12 +50,18 @@
   --r-sm:   14px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Status colors — same in both themes, used sparingly (over-budget warnings,
+     alignment breakdown) so they read as deliberate signals, not decoration */
+  --good:   #4F9A5C;
+  --mid:    #C98A2A;
+  --danger: #D64545;
 }
 
 :root[data-theme="dark"] {
   --bg-base:   #140D0A;
   --bg-glow-1: rgba(255, 130, 40, 0.46);
-  --bg-glow-2: rgba(255, 85, 0, 0.26);
+  --bg-glow-2: rgba(255, 95, 0, 0.42);
 
   --glass-fill:      rgba(255, 255, 255, 0.07);
   --glass-border:    rgba(255, 255, 255, 0.14);
@@ -124,8 +130,8 @@ body::before {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(60% 50% at 50% 0%,   var(--bg-glow-1), transparent 70%),
-    radial-gradient(80% 60% at 50% 100%, var(--bg-glow-2), transparent 70%),
+    radial-gradient(60% 50% at 50% 0%,    var(--bg-glow-1), transparent 70%),
+    radial-gradient(100% 85% at 50% 100%, var(--bg-glow-2), transparent 80%),
     var(--bg-base);
   transition: background-color 0.2s ease-out;
 }
@@ -1449,4 +1455,179 @@ body::before {
 
 .save-toast.show .save-toast-check {
   animation: checkBloom 0.35s var(--ease-out);
+}
+
+/* ── Toolbox: Needs Calculator ────────────────────────────── */
+.needs-scorer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Person mode: independent steppers, no shared slider to fight over */
+.needs-stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.needs-stepper-row:last-child {
+  border-bottom: none;
+}
+
+.needs-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.needs-step-btn {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.needs-step-value {
+  min-width: 30px;
+  text-align: center;
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.needs-remaining {
+  text-align: center;
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  transition: color 0.15s ease-out;
+}
+
+.needs-remaining.over {
+  color: var(--danger);
+}
+
+/* Vehicle mode reuses .rate-area-row / .rate-dots / .rate-dot from Life Rating
+   directly — same control, same feel, just a different list of labels */
+
+.needs-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.needs-result-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.needs-result-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.needs-result-value {
+  font-size: 0.95rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+
+.needs-flag {
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Alignment breakdown rows — green/amber/red per need, against the vehicle's score */
+.needs-align-pct {
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+}
+
+.needs-align-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.needs-align-row:last-child {
+  border-bottom: none;
+}
+
+.needs-align-need {
+  font-size: 0.9rem;
+  color: var(--text-soft);
+  text-transform: capitalize;
+}
+
+.needs-align-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.needs-align-badge.good { background: var(--good); }
+.needs-align-badge.mid  { background: var(--mid); }
+.needs-align-badge.bad  { background: var(--danger); }
+
+.needs-align-read {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Need definition panel content (reuses .scale-panel / .scale-panel-overlay) */
+.need-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.need-panel-section:last-child {
+  border-bottom: none;
+}
+
+.need-panel-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.need-panel-text {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-soft);
+}
+
+.need-panel-gut-check {
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  font-style: italic;
 }
