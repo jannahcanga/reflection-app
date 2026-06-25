@@ -917,14 +917,17 @@ function renderMeter() {
   fill.style.filter   = 'saturate(' + Math.round(20 + pct * 0.8) + '%)';
 
   // Two stacked glow layers (tight+bright, wide+soft) for a fuller bloom —
-  // both fade to almost nothing at 0% and stack into a strong halo by 100%
+  // both fade to almost nothing at 0% and stack into a strong halo by 100%.
+  // g = t² makes the glow ramp up steeply: a low value (e.g. 33%) stays dim,
+  // and the bright bloom is reserved for the genuinely high end.
   const t          = pct / 100;
-  const innerBlur  = Math.round(10 + t * 34);
-  const innerSpread = Math.round(t * 4);
-  const innerAlpha = Math.round((0.08 + t * 0.52) * 100);
-  const outerBlur  = Math.round(28 + t * 84);
-  const outerSpread = Math.round(t * 12);
-  const outerAlpha = Math.round((0.04 + t * 0.36) * 100);
+  const g          = t * t;
+  const innerBlur  = Math.round(10 + g * 34);
+  const innerSpread = Math.round(g * 4);
+  const innerAlpha = Math.round((0.08 + g * 0.52) * 100);
+  const outerBlur  = Math.round(28 + g * 84);
+  const outerSpread = Math.round(g * 12);
+  const outerAlpha = Math.round((0.04 + g * 0.36) * 100);
 
   const innerGlow = '0 0 ' + innerBlur + 'px ' + innerSpread + 'px color-mix(in srgb, var(--accent) ' + innerAlpha + '%, transparent)';
   const outerGlow = '0 0 ' + outerBlur + 'px ' + outerSpread + 'px color-mix(in srgb, var(--accent) ' + outerAlpha + '%, transparent)';
