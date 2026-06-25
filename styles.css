@@ -13,8 +13,8 @@
 :root {
   /* Background + glow */
   --bg-base:   #F4ECE2;
-  --bg-glow-1: rgba(255, 145, 40, 0.36);
-  --bg-glow-2: rgba(255, 85, 0, 0.30);
+  --bg-glow-1: rgba(255, 145, 40, 0.18);
+  --bg-glow-2: rgba(255, 85, 0, 0.14);
 
   /* Glass (chrome: cards, panels, nav) */
   --glass-fill:      rgba(255, 255, 255, 0.45);
@@ -60,8 +60,8 @@
 
 :root[data-theme="dark"] {
   --bg-base:   #140D0A;
-  --bg-glow-1: rgba(255, 130, 40, 0.46);
-  --bg-glow-2: rgba(255, 95, 0, 0.42);
+  --bg-glow-1: rgba(255, 130, 40, 0.24);
+  --bg-glow-2: rgba(255, 95, 0, 0.20);
 
   --glass-fill:      rgba(255, 255, 255, 0.07);
   --glass-border:    rgba(255, 255, 255, 0.14);
@@ -108,10 +108,22 @@ html {
   background: var(--bg-base);
 }
 
+/* Kill all browser zoom (pinch + double-tap) — paired with the viewport meta's
+   maximum-scale=1, user-scalable=no. text-size-adjust stops iOS from auto-
+   inflating font sizes. Intentional: disables accessibility zoom too. */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text);
-  background: var(--bg-base);
+  /* Transparent on purpose: body has no z-index, so its own background would
+     paint in normal flow order — above the fixed, z-index:-1 gradient below
+     (body::before). html keeps the solid bg-base as the canvas fallback. */
+  background: transparent;
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
