@@ -2566,6 +2566,49 @@ document.getElementById('needs-subject-input').addEventListener('input', () => {
   document.getElementById('needs-holding-lightly').classList.toggle('hidden', isMe);
 });
 
+// Person-mode slider helpers — keep the filled track in sync with the value,
+// clamp typed input to the slider's own range, and swap the readout for a
+// number input on tap so an exact figure can be typed instead of dragged to.
+function setNeedsSliderFill(slider) {
+  const min = parseFloat(slider.min), max = parseFloat(slider.max), val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  slider.style.setProperty('--needs-fill', pct + '%');
+}
+
+function clampNeedsValue(val, min, max) {
+  if (isNaN(val)) val = min;
+  return Math.min(max, Math.max(min, Math.round(val)));
+}
+
+function openNeedsValueEditor(valueEl, slider, min, max, onCommit) {
+  let done = false;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'needs-slider-value-input';
+  input.min = min;
+  input.max = max;
+  input.step = slider.step;
+  input.value = slider.value;
+  input.inputMode = 'numeric';
+
+  valueEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function finish(shouldCommit) {
+    if (done) return;
+    done = true;
+    if (shouldCommit) onCommit(clampNeedsValue(parseFloat(input.value), min, max));
+    input.replaceWith(valueEl);
+  }
+
+  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+}
+
 function renderNeedsScorer() {
   const list = document.getElementById('needs-scorer-list');
   list.innerHTML = '';
@@ -2575,41 +2618,54 @@ function renderNeedsScorer() {
 
     NEEDS_DATA.forEach(need => {
       const row = document.createElement('div');
-      row.className = 'needs-stepper-row';
+      row.className = 'needs-slider-row';
+
+      const top = document.createElement('div');
+      top.className = 'needs-slider-top';
 
       const label = document.createElement('span');
       label.className = 'rate-area-label';
       label.textContent = need.label;
       label.addEventListener('click', () => toggleNeedPanel(need.key));
 
-      const stepper = document.createElement('div');
-      stepper.className = 'needs-stepper';
+      const valueEl = document.createElement('span');
+      valueEl.className = 'needs-slider-value';
+      valueEl.textContent = needsEntryScores[need.key];
+      valueEl.tabIndex = 0;
 
-      const minusBtn = document.createElement('button');
-      minusBtn.className = 'icon-btn needs-step-btn';
-      minusBtn.textContent = '−';
-      minusBtn.addEventListener('click', () => {
-        needsEntryScores[need.key] = Math.max(0, needsEntryScores[need.key] - 1);
-        renderNeedsScorer();
+      top.appendChild(label);
+      top.appendChild(valueEl);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'needs-slider';
+      slider.min = '0';
+      slider.max = '100';
+      slider.step = '1';
+      slider.value = needsEntryScores[need.key];
+      setNeedsSliderFill(slider);
+
+      const commit = (newVal) => {
+        const clamped = clampNeedsValue(newVal, 0, 100);
+        needsEntryScores[need.key] = clamped;
+        slider.value = clamped;
+        valueEl.textContent = clamped;
+        setNeedsSliderFill(slider);
+        updateNeedsRemaining();
+      };
+
+      slider.addEventListener('input', () => commit(parseInt(slider.value, 10)));
+
+      valueEl.addEventListener('click', () => openNeedsValueEditor(valueEl, slider, 0, 100, commit));
+      valueEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openNeedsValueEditor(valueEl, slider, 0, 100, commit);
+        }
       });
 
-      const value = document.createElement('span');
-      value.className = 'needs-step-value';
-      value.textContent = needsEntryScores[need.key];
-
-      const plusBtn = document.createElement('button');
-      plusBtn.className = 'icon-btn needs-step-btn';
-      plusBtn.textContent = '+';
-      plusBtn.addEventListener('click', () => {
-        needsEntryScores[need.key] = needsEntryScores[need.key] + 1;
-        renderNeedsScorer();
-      });
-
-      stepper.appendChild(minusBtn);
-      stepper.appendChild(value);
-      stepper.appendChild(plusBtn);
-      row.appendChild(label);
-      row.appendChild(stepper);
+      row.appendChild(top);
+      row.appendChild(slider);
       list.appendChild(row);
     });
 
