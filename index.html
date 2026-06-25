@@ -266,6 +266,7 @@
           <button id="open-want-list-btn" class="person-btn">Everything I Could Ever Want</button>
           <button id="open-gratitude-btn" class="person-btn">20 Things I'm Grateful For</button>
           <button id="open-problem-solver-btn" class="person-btn">Problem Solver</button>
+          <button id="open-needs-btn" class="person-btn">Needs Calculator</button>
         </div>
       </div>
     </div>
@@ -394,6 +395,94 @@
       </div>
     </div>
 
+    <!-- TOOLBOX: Needs Calculator — hub -->
+    <div id="needs-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Needs Calculator</p>
+        <p class="light-subtext">Everyone values all six human needs but ranks them differently — your top two quietly drive most of your decisions.</p>
+        <div class="toolbox-tools">
+          <button id="needs-new-entry-btn" class="person-btn">New entry</button>
+          <button id="needs-alignment-btn" class="person-btn">Alignment</button>
+          <button id="needs-archive-btn" class="person-btn">Archive</button>
+        </div>
+        <button id="needs-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- NEEDS CALCULATOR: choose person vs. thing -->
+    <div id="needs-type-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">New entry</p>
+        <p class="light-subtext">Is this about a person, or a thing — a project, habit, or relationship that pulls on you?</p>
+        <div class="emotion-buttons">
+          <button id="needs-type-person-btn" class="currency-btn">A person</button>
+          <button id="needs-type-vehicle-btn" class="currency-btn">A thing</button>
+        </div>
+        <button id="needs-type-back-btn" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- NEEDS CALCULATOR: scorer (person 100-pt distributor, or vehicle 0-10 sliders) -->
+    <div id="needs-entry-screen" class="screen">
+      <div class="card glass">
+        <p id="needs-entry-title" class="section-label screen-title">A person</p>
+
+        <input id="needs-subject-input" class="search-input" type="text" placeholder="Name (or &quot;Me&quot;)">
+        <p id="needs-holding-lightly" class="light-subtext hidden">This is your read on their needs — worth holding lightly and checking with them.</p>
+
+        <p id="needs-remaining" class="needs-remaining hidden"></p>
+
+        <div id="needs-scorer-list" class="needs-scorer-list"></div>
+
+        <textarea id="needs-notes-input" class="answer-input" placeholder="Notes (optional)"></textarea>
+
+        <button id="needs-save-entry-btn" class="btn accent">Save</button>
+        <button id="needs-entry-cancel-btn" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- NEEDS CALCULATOR: results after saving a person or vehicle entry -->
+    <div id="needs-result-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Result</p>
+        <p id="needs-result-subject" class="rate-avg"></p>
+        <div id="needs-result-body" class="needs-result-body"></div>
+        <button id="needs-result-done-btn" class="btn accent">Done</button>
+      </div>
+    </div>
+
+    <!-- NEEDS CALCULATOR: alignment between a saved person and a saved thing -->
+    <div id="needs-alignment-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Alignment</p>
+
+        <select id="needs-align-person-select" class="search-input"></select>
+        <select id="needs-align-vehicle-select" class="search-input"></select>
+        <button id="needs-align-calc-btn" class="btn">Calculate</button>
+
+        <div id="needs-align-result" class="needs-result-body hidden"></div>
+        <button id="needs-align-save-btn" class="btn secondary hidden">Save this reading</button>
+
+        <button id="needs-align-back-btn" class="btn secondary">Back</button>
+      </div>
+    </div>
+
+    <!-- NEEDS CALCULATOR: archive of past readings, filterable by subject -->
+    <div id="needs-archive-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Needs Archive</p>
+        <div class="input-glass">
+          <svg class="input-glass-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input id="needs-archive-search" class="search-input" type="text" placeholder="Filter by subject...">
+        </div>
+        <div id="needs-archive-list"></div>
+        <button id="needs-archive-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
     <!-- MENTAL STATE METER: always present, just like the nav -->
     <button id="state-meter" class="state-meter glass" title="Mental State Meter">
       <span class="state-meter-caption">Mental State</span>
@@ -439,7 +528,7 @@
       <span id="save-toast-text">Saved</span>
     </div>
 
-    <!-- Scale definitions ladder — shown while holding an area name (Life Rating), hidden on release -->
+    <!-- Scale definitions ladder — shown by tapping an area name (Life Rating), hidden by tapping the scrim -->
     <div id="scale-panel-overlay" class="scale-panel-overlay">
       <div class="scale-panel glass">
         <p id="scale-panel-title" class="scale-panel-title"></p>
