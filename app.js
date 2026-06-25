@@ -625,7 +625,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 
   const ratingGroup  = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
-  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen', 'problem-list-screen', 'problem-detail-screen'];
+  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen', 'problem-list-screen', 'problem-detail-screen', 'needs-screen', 'needs-type-screen', 'needs-entry-screen', 'needs-result-screen', 'needs-alignment-screen', 'needs-archive-screen'];
   let activeTab = 'tab-home';
   if (ratingGroup.includes(id))  activeTab = 'tab-rating';
   if (toolboxGroup.includes(id)) activeTab = 'tab-toolbox';
@@ -698,7 +698,7 @@ function showSavedToast(message) {
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
 // safety net — export before deleting/re-adding the icon, import after.
 
-const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems', 'myQuotes'];
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems', 'myQuotes', 'needsEntries'];
 
 function exportBackup() {
   const dump = {};
@@ -2390,9 +2390,597 @@ document.getElementById('detail-cal-btn').addEventListener('click', () => {
 });
 
 // Tapping the scrim closes the panel; tapping inside it does not (stopped
-// before it can bubble up to the scrim's own listener)
-document.getElementById('scale-panel-overlay').addEventListener('click', closeScalePanel);
+// before it can bubble up to the scrim's own listener). Clears both the
+// Life Rating and Needs Calculator "open key" trackers — only one of the
+// two ever has something open, but clearing both keeps a stale key from
+// blocking the next tap from reopening its panel.
+document.getElementById('scale-panel-overlay').addEventListener('click', () => {
+  closeScalePanel();
+  closeNeedPanel();
+});
 document.querySelector('#scale-panel-overlay .scale-panel').addEventListener('click', e => e.stopPropagation());
+
+
+// ── Toolbox: Needs Calculator ───────────────────────────────────────────────────
+// Tony Robbins' 6 Human Needs. certainty/variety/significance/connection are
+// "needs of the personality" (everyone chases these); growth/contribution are
+// "needs of the spirit," where lasting fulfillment actually lives.
+
+const NEEDS_DATA = [
+  {
+    key: 'certainty', label: 'Certainty', tier: 'personality',
+    definition: 'Safety, stability, comfort, predictability — knowing you can avoid pain and feel okay.',
+    healthy: 'Skills, savings, reliable routines and people.',
+    shadowLabel: 'Shadow',
+    shadow: 'Over-control, playing small, settling, avoidance.'
+  },
+  {
+    key: 'variety', label: 'Variety / Uncertainty', tier: 'personality',
+    definition: 'Novelty, surprise, challenge, change.',
+    healthy: 'Learning, travel, new projects, healthy risk.',
+    shadowLabel: 'Shadow',
+    shadow: "Drama-seeking, distraction, can't-commit, chaos for its own sake.",
+    gutCheck: "If I did this exact thing repeatedly, would the appeal die? If yes — it's feeding Variety, not Growth."
+  },
+  {
+    key: 'significance', label: 'Significance', tier: 'personality',
+    definition: 'Feeling important, unique, needed, like you matter.',
+    healthy: 'Mastery, high standards, respect earned through contribution.',
+    shadowLabel: 'Shadow',
+    shadow: 'Ego, one-upping, problems-as-identity, approval-chasing perfectionism.'
+  },
+  {
+    key: 'connection', label: 'Love / Connection', tier: 'personality',
+    definition: 'Closeness, intimacy, belonging, being part of something.',
+    healthy: 'Vulnerability, real intimacy, community, giving love.',
+    shadowLabel: 'Shadow',
+    shadow: "People-pleasing, losing yourself, staying where you shouldn't.",
+    gutCheck: "If I already felt completely secure and loved here, would I still over-give? If the over-giving would STOP — it's Connection (driven by fear of abandonment/rejection)."
+  },
+  {
+    key: 'growth', label: 'Growth', tier: 'spirit',
+    definition: 'Expanding, learning, becoming more capable.',
+    healthy: 'Stretching, reflection, building capacity.',
+    shadowLabel: 'Watch for',
+    shadow: 'Growth-addiction that never lets you rest or arrive.',
+    gutCheck: "If I did this exact thing repeatedly, would the appeal die? If it'd still be worth doing — it's Growth, not Variety. (Growth leaves you more capable; Variety just leaves you entertained.)"
+  },
+  {
+    key: 'contribution', label: 'Contribution', tier: 'spirit',
+    definition: 'Giving and serving beyond yourself.',
+    healthy: 'Generosity, creating value, caring for people and causes.',
+    shadowLabel: 'Shadow',
+    shadow: 'Over-giving to depletion, martyrdom.',
+    gutCheck: "If I already felt completely secure and loved here, would I still over-give? If I'd keep going ANYWAY — it's Contribution (driven by the identity of being the giver / fear of being selfish or not mattering), not Connection."
+  }
+];
+
+function emptyNeedScores() {
+  const scores = {};
+  NEEDS_DATA.forEach(n => scores[n.key] = 0);
+  return scores;
+}
+
+function loadNeedsEntries() { return JSON.parse(localStorage.getItem('needsEntries') || '[]'); }
+function saveNeedsEntries(list) { localStorage.setItem('needsEntries', JSON.stringify(list)); }
+
+function needLabel(key) { return NEEDS_DATA.find(n => n.key === key).label; }
+
+
+// ── Needs Calculator: tap-to-reveal definitions ─────────────────────────────────
+// Reuses the exact same overlay/card as Life Rating's scale panel — only the
+// content built into #scale-panel-levels differs.
+
+let openNeedKey = null;
+
+function toggleNeedPanel(key) {
+  if (openNeedKey === key) closeNeedPanel();
+  else openNeedPanel(key);
+}
+
+function needPanelSection(label, text, isGutCheck) {
+  const section = document.createElement('div');
+  section.className = 'need-panel-section';
+
+  if (label) {
+    const labelEl = document.createElement('p');
+    labelEl.className = 'need-panel-label';
+    labelEl.textContent = label;
+    section.appendChild(labelEl);
+  }
+
+  const textEl = document.createElement('p');
+  textEl.className = isGutCheck ? 'need-panel-gut-check' : 'need-panel-text';
+  textEl.textContent = text;
+  section.appendChild(textEl);
+
+  return section;
+}
+
+function openNeedPanel(key) {
+  openNeedKey = key;
+  const need = NEEDS_DATA.find(n => n.key === key);
+
+  setText('scale-panel-title', need.label);
+
+  const levelsEl = document.getElementById('scale-panel-levels');
+  levelsEl.innerHTML = '';
+  levelsEl.appendChild(needPanelSection(null, need.definition));
+  levelsEl.appendChild(needPanelSection('Healthy', need.healthy));
+  levelsEl.appendChild(needPanelSection(need.shadowLabel, need.shadow));
+  if (need.gutCheck) {
+    levelsEl.appendChild(needPanelSection('Not sure? Ask yourself', need.gutCheck, true));
+  }
+
+  document.getElementById('scale-panel-overlay').classList.add('show');
+}
+
+function closeNeedPanel() {
+  openNeedKey = null;
+  document.getElementById('scale-panel-overlay').classList.remove('show');
+}
+
+
+// ── Needs Calculator: computations — always derived from raw scores, never stored ──
+
+function needsTopTwo(scores) {
+  return NEEDS_DATA.map(n => n.key).sort((a, b) => scores[b] - scores[a]).slice(0, 2);
+}
+
+function needsPersonalitySpiritSplit(scores) {
+  const personality = NEEDS_DATA.filter(n => n.tier === 'personality').reduce((sum, n) => sum + scores[n.key], 0);
+  const spirit      = NEEDS_DATA.filter(n => n.tier === 'spirit').reduce((sum, n) => sum + scores[n.key], 0);
+  return { personality, spirit };
+}
+
+function needsMostNeglected(scores) {
+  return NEEDS_DATA.map(n => n.key).reduce((lowest, key) => scores[key] < scores[lowest] ? key : lowest);
+}
+
+function needsMetHard(scores)  { return NEEDS_DATA.map(n => n.key).filter(key => scores[key] >= 7); }
+function needsStarved(scores)  { return NEEDS_DATA.map(n => n.key).filter(key => scores[key] <= 3); }
+
+
+// ── Needs Calculator: new entry — type picker, scorer, save ─────────────────────
+
+let needsEntryType   = null;   // 'person' | 'vehicle'
+let needsEntryScores = {};
+
+function openNeedsEntry(type) {
+  needsEntryType   = type;
+  needsEntryScores = emptyNeedScores();
+
+  setText('needs-entry-title', type === 'person' ? 'A person' : 'A thing');
+  document.getElementById('needs-subject-input').value = '';
+  document.getElementById('needs-notes-input').value = '';
+  hide('needs-holding-lightly');
+
+  renderNeedsScorer();
+  showScreen('needs-entry-screen');
+}
+
+document.getElementById('needs-subject-input').addEventListener('input', () => {
+  if (needsEntryType !== 'person') return;
+  const name = document.getElementById('needs-subject-input').value.trim().toLowerCase();
+  const isMe = name === '' || name === 'me' || name === 'myself' || name === 'i';
+  document.getElementById('needs-holding-lightly').classList.toggle('hidden', isMe);
+});
+
+function renderNeedsScorer() {
+  const list = document.getElementById('needs-scorer-list');
+  list.innerHTML = '';
+
+  if (needsEntryType === 'person') {
+    show('needs-remaining');
+
+    NEEDS_DATA.forEach(need => {
+      const row = document.createElement('div');
+      row.className = 'needs-stepper-row';
+
+      const label = document.createElement('span');
+      label.className = 'rate-area-label';
+      label.textContent = need.label;
+      label.addEventListener('click', () => toggleNeedPanel(need.key));
+
+      const stepper = document.createElement('div');
+      stepper.className = 'needs-stepper';
+
+      const minusBtn = document.createElement('button');
+      minusBtn.className = 'icon-btn needs-step-btn';
+      minusBtn.textContent = '−';
+      minusBtn.addEventListener('click', () => {
+        needsEntryScores[need.key] = Math.max(0, needsEntryScores[need.key] - 1);
+        renderNeedsScorer();
+      });
+
+      const value = document.createElement('span');
+      value.className = 'needs-step-value';
+      value.textContent = needsEntryScores[need.key];
+
+      const plusBtn = document.createElement('button');
+      plusBtn.className = 'icon-btn needs-step-btn';
+      plusBtn.textContent = '+';
+      plusBtn.addEventListener('click', () => {
+        needsEntryScores[need.key] = needsEntryScores[need.key] + 1;
+        renderNeedsScorer();
+      });
+
+      stepper.appendChild(minusBtn);
+      stepper.appendChild(value);
+      stepper.appendChild(plusBtn);
+      row.appendChild(label);
+      row.appendChild(stepper);
+      list.appendChild(row);
+    });
+
+    updateNeedsRemaining();
+
+  } else {
+    hide('needs-remaining');
+    document.getElementById('needs-save-entry-btn').disabled = false;
+
+    NEEDS_DATA.forEach(need => {
+      const row = document.createElement('div');
+      row.className = 'rate-area-row';
+      row.style.width = '100%';
+
+      const label = document.createElement('p');
+      label.className = 'rate-area-label';
+      label.textContent = need.label;
+      label.addEventListener('click', () => toggleNeedPanel(need.key));
+      row.appendChild(label);
+
+      const dotsRow = document.createElement('div');
+      dotsRow.className = 'rate-dots';
+
+      const val = needsEntryScores[need.key];
+
+      for (let seg = 0; seg <= 10; seg++) {
+        const dot = document.createElement('button');
+        dot.className = 'rate-dot';
+        if (seg <= val) dot.style.backgroundColor = ratingColor(val);
+        dot.addEventListener('click', () => {
+          needsEntryScores[need.key] = seg;
+          renderNeedsScorer();
+        });
+        dotsRow.appendChild(dot);
+      }
+
+      row.appendChild(dotsRow);
+      list.appendChild(row);
+    });
+  }
+}
+
+function updateNeedsRemaining() {
+  const total = NEEDS_DATA.reduce((sum, n) => sum + needsEntryScores[n.key], 0);
+  const remaining = 100 - total;
+  const el = document.getElementById('needs-remaining');
+  el.textContent = 'Remaining: ' + remaining;
+  el.classList.toggle('over', remaining < 0);
+  document.getElementById('needs-save-entry-btn').disabled = (remaining !== 0);
+}
+
+document.getElementById('needs-save-entry-btn').addEventListener('click', () => {
+  const subject = document.getElementById('needs-subject-input').value.trim();
+  if (!subject) return;
+
+  if (needsEntryType === 'person') {
+    const total = NEEDS_DATA.reduce((sum, n) => sum + needsEntryScores[n.key], 0);
+    if (total !== 100) return;
+  }
+
+  const entry = {
+    id:     Date.now(),
+    date:   new Date().toISOString().slice(0, 10),
+    type:   needsEntryType,
+    subject,
+    scores: Object.assign({}, needsEntryScores),
+    notes:  document.getElementById('needs-notes-input').value.trim()
+  };
+
+  const entries = loadNeedsEntries();
+  entries.push(entry);
+  saveNeedsEntries(entries);
+
+  renderNeedsResult(entry);
+  showScreen('needs-result-screen');
+  showSavedToast('Entry saved');
+});
+
+document.getElementById('needs-entry-cancel-btn').addEventListener('click', () => showScreen('needs-type-screen'));
+document.getElementById('needs-result-done-btn').addEventListener('click', () => showScreen('needs-screen'));
+
+
+// ── Needs Calculator: results card ──────────────────────────────────────────────
+
+function needsResultSection(parent, label, value) {
+  const section = document.createElement('div');
+  section.className = 'needs-result-section';
+
+  const labelEl = document.createElement('p');
+  labelEl.className = 'needs-result-label';
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement('p');
+  valueEl.className = 'needs-result-value';
+  valueEl.textContent = value;
+
+  section.appendChild(labelEl);
+  section.appendChild(valueEl);
+  parent.appendChild(section);
+}
+
+function renderNeedsResult(entry) {
+  setText('needs-result-subject', entry.subject);
+  const body = document.getElementById('needs-result-body');
+  body.innerHTML = '';
+
+  if (entry.type === 'person') {
+    const top2 = needsTopTwo(entry.scores);
+    needsResultSection(body, 'Top two needs', top2.map(needLabel).join(' & '));
+
+    const { personality, spirit } = needsPersonalitySpiritSplit(entry.scores);
+    needsResultSection(body, 'Personality / spirit split', personality + ' personality / ' + spirit + ' spirit');
+
+    needsResultSection(body, 'Most neglected', needLabel(needsMostNeglected(entry.scores)));
+
+    if (spirit < 25) {
+      const flag = document.createElement('p');
+      flag.className = 'needs-flag';
+      flag.textContent = 'Comfortable, but empty — most of the budget is going to needs of the personality, not the spirit.';
+      body.appendChild(flag);
+    }
+
+  } else if (entry.type === 'vehicle') {
+    const met = needsMetHard(entry.scores);
+    needsResultSection(body, 'Meets hard (7+)', met.length ? met.map(needLabel).join(', ') : 'Nothing yet');
+
+    const starved = needsStarved(entry.scores);
+    needsResultSection(body, 'Starves (3 or under)', starved.length ? starved.map(needLabel).join(', ') : 'Nothing');
+
+    if (met.length >= 3) {
+      const flag = document.createElement('p');
+      flag.className = 'needs-flag';
+      flag.textContent = "This has a real grip on you — and here's which needs are holding it.";
+      body.appendChild(flag);
+    }
+  }
+
+  if (entry.notes) {
+    needsResultSection(body, 'Notes', entry.notes);
+  }
+}
+
+
+// ── Needs Calculator: alignment ─────────────────────────────────────────────────
+
+let lastAlignment = null;   // { person, vehicle, percent } — backs the optional save
+
+function computeAlignment(person, vehicle) {
+  let alignment = 0;
+  NEEDS_DATA.forEach(n => {
+    const weight      = person.scores[n.key] / 100;
+    const fulfillment = vehicle.scores[n.key] / 10;
+    alignment += weight * fulfillment;
+  });
+  return Math.round(alignment * 100);
+}
+
+function needBadgeClass(score) {
+  if (score >= 7) return 'good';
+  if (score >= 4) return 'mid';
+  return 'bad';
+}
+
+function alignmentReadLine(percent, top3Keys, vehicle) {
+  const compelling = needsMetHard(vehicle.scores).length >= 3;
+  const anyRed = top3Keys.some(key => vehicle.scores[key] <= 3);
+
+  if (compelling && percent < 50) return "High raw appeal but low alignment — it's feeding needs that aren't your top ones.";
+  if (percent >= 70) return 'This lines up well with what actually drives you.';
+  if (anyRed) return "It's missing something you rank highly.";
+  return 'Partial alignment — it meets some of what matters most, not all.';
+}
+
+function populateNeedsAlignSelects() {
+  const entries  = loadNeedsEntries();
+  const people   = entries.filter(e => e.type === 'person');
+  const vehicles = entries.filter(e => e.type === 'vehicle');
+
+  const personSelect  = document.getElementById('needs-align-person-select');
+  const vehicleSelect = document.getElementById('needs-align-vehicle-select');
+  personSelect.innerHTML  = '';
+  vehicleSelect.innerHTML = '';
+
+  function fill(select, items, emptyLabel) {
+    if (items.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = emptyLabel;
+      select.appendChild(opt);
+      return;
+    }
+    items.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.subject + ' (' + item.date + ')';
+      select.appendChild(opt);
+    });
+  }
+
+  fill(personSelect,  people,   'No people saved yet');
+  fill(vehicleSelect, vehicles, 'No things saved yet');
+}
+
+function renderNeedsAlignment(person, vehicle) {
+  const percent = computeAlignment(person, vehicle);
+  const top3 = NEEDS_DATA.map(n => n.key).sort((a, b) => person.scores[b] - person.scores[a]).slice(0, 3);
+
+  const resultEl = document.getElementById('needs-align-result');
+  resultEl.innerHTML = '';
+
+  const pctEl = document.createElement('p');
+  pctEl.className = 'needs-align-pct';
+  pctEl.textContent = percent + '%';
+  resultEl.appendChild(pctEl);
+
+  top3.forEach(key => {
+    const score = vehicle.scores[key];
+    const row = document.createElement('div');
+    row.className = 'needs-align-row';
+
+    const name = document.createElement('span');
+    name.className = 'needs-align-need';
+    name.textContent = needLabel(key);
+
+    const badge = document.createElement('span');
+    badge.className = 'needs-align-badge ' + needBadgeClass(score);
+    badge.textContent = score + '/10';
+
+    row.appendChild(name);
+    row.appendChild(badge);
+    resultEl.appendChild(row);
+  });
+
+  const readEl = document.createElement('p');
+  readEl.className = 'needs-align-read';
+  readEl.textContent = alignmentReadLine(percent, top3, vehicle);
+  resultEl.appendChild(readEl);
+
+  resultEl.classList.remove('hidden');
+  show('needs-align-save-btn');
+
+  lastAlignment = { person, vehicle, percent };
+}
+
+document.getElementById('needs-align-calc-btn').addEventListener('click', () => {
+  const personId  = document.getElementById('needs-align-person-select').value;
+  const vehicleId = document.getElementById('needs-align-vehicle-select').value;
+  if (!personId || !vehicleId) return;
+
+  const entries = loadNeedsEntries();
+  const person  = entries.find(e => String(e.id) === personId);
+  const vehicle = entries.find(e => String(e.id) === vehicleId);
+  if (!person || !vehicle) return;
+
+  renderNeedsAlignment(person, vehicle);
+});
+
+document.getElementById('needs-align-save-btn').addEventListener('click', () => {
+  if (!lastAlignment) return;
+  const entries = loadNeedsEntries();
+  entries.push({
+    id:               Date.now(),
+    date:             new Date().toISOString().slice(0, 10),
+    type:             'alignment',
+    personId:         lastAlignment.person.id,
+    vehicleId:        lastAlignment.vehicle.id,
+    alignmentPercent: lastAlignment.percent,
+    notes:            ''
+  });
+  saveNeedsEntries(entries);
+  showSavedToast('Reading saved');
+});
+
+
+// ── Needs Calculator: archive ────────────────────────────────────────────────────
+
+function needsEntrySubjectLabel(entry, entries) {
+  if (entry.type === 'alignment') {
+    const person  = entries.find(e => e.id === entry.personId);
+    const vehicle = entries.find(e => e.id === entry.vehicleId);
+    return (person ? person.subject : 'Someone') + ' × ' + (vehicle ? vehicle.subject : 'Something');
+  }
+  return entry.subject;
+}
+
+function buildNeedsArchive(filter = '') {
+  const entries = loadNeedsEntries().slice().sort((a, b) => b.id - a.id);
+  const lc = filter.toLowerCase();
+  const visible = entries.filter(e => needsEntrySubjectLabel(e, entries).toLowerCase().includes(lc));
+
+  const list = document.getElementById('needs-archive-list');
+  list.innerHTML = '';
+
+  if (visible.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = entries.length === 0 ? 'No entries yet.' : 'No results.';
+    list.appendChild(empty);
+    return;
+  }
+
+  visible.forEach(entry => {
+    const block = document.createElement('div');
+    block.className = 'entry-block';
+
+    const header = document.createElement('button');
+    header.className = 'entry-header';
+    const typeLabel = entry.type === 'person' ? 'person' : entry.type === 'vehicle' ? 'thing' : 'alignment';
+    header.textContent = entry.date + '  ·  ' + needsEntrySubjectLabel(entry, entries) + '  ·  ' + typeLabel;
+
+    const content = document.createElement('div');
+    content.className = 'entry-content hidden';
+
+    header.addEventListener('click', () => {
+      content.classList.toggle('hidden');
+      header.classList.toggle('open');
+    });
+
+    if (entry.type === 'alignment') {
+      const pct = document.createElement('p');
+      pct.className = 'entry-a';
+      pct.textContent = 'Alignment: ' + entry.alignmentPercent + '%';
+      content.appendChild(pct);
+    } else {
+      NEEDS_DATA.forEach(n => {
+        const row = document.createElement('p');
+        row.className = 'entry-a';
+        row.textContent = n.label + ': ' + entry.scores[n.key] + (entry.type === 'vehicle' ? '/10' : '');
+        content.appendChild(row);
+      });
+      if (entry.notes) {
+        const notes = document.createElement('p');
+        notes.className = 'entry-q';
+        notes.textContent = entry.notes;
+        content.appendChild(notes);
+      }
+    }
+
+    block.appendChild(header);
+    block.appendChild(content);
+    list.appendChild(block);
+  });
+}
+
+
+// ── Needs Calculator: screen/button wiring ──────────────────────────────────────
+
+document.getElementById('open-needs-btn').addEventListener('click', () => showScreen('needs-screen'));
+document.getElementById('needs-back-btn').addEventListener('click', () => showScreen('toolbox-screen'));
+
+document.getElementById('needs-new-entry-btn').addEventListener('click', () => showScreen('needs-type-screen'));
+document.getElementById('needs-type-person-btn').addEventListener('click', () => openNeedsEntry('person'));
+document.getElementById('needs-type-vehicle-btn').addEventListener('click', () => openNeedsEntry('vehicle'));
+document.getElementById('needs-type-back-btn').addEventListener('click', () => showScreen('needs-screen'));
+
+document.getElementById('needs-alignment-btn').addEventListener('click', () => {
+  populateNeedsAlignSelects();
+  hide('needs-align-result');
+  hide('needs-align-save-btn');
+  lastAlignment = null;
+  showScreen('needs-alignment-screen');
+});
+document.getElementById('needs-align-back-btn').addEventListener('click', () => showScreen('needs-screen'));
+
+document.getElementById('needs-archive-btn').addEventListener('click', () => {
+  document.getElementById('needs-archive-search').value = '';
+  buildNeedsArchive();
+  showScreen('needs-archive-screen');
+});
+document.getElementById('needs-archive-back-btn').addEventListener('click', () => showScreen('needs-screen'));
+document.getElementById('needs-archive-search').addEventListener('input', e => buildNeedsArchive(e.target.value));
 
 
 // ── Toolbox button wiring ─────────────────────────────────────────────────────
