@@ -267,6 +267,9 @@
           <button id="open-gratitude-btn" class="person-btn">20 Things I'm Grateful For</button>
           <button id="open-problem-solver-btn" class="person-btn">Problem Solver</button>
           <button id="open-needs-btn" class="person-btn">Needs Calculator</button>
+          <button id="open-today-enough-btn" class="person-btn">What would make today enough?</button>
+          <button id="open-inversion-btn" class="person-btn">Inversion</button>
+          <button id="open-rpm-btn" class="person-btn">Task Breaker (RPM)</button>
         </div>
       </div>
     </div>
@@ -481,6 +484,152 @@
         </div>
         <div id="needs-archive-list"></div>
         <button id="needs-archive-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: What would make today enough? — up to 3 daily needle-movers -->
+    <div id="today-enough-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">What would make today enough?</p>
+        <p class="light-subtext">Name up to 3 things — the few that would make today count. That's the point: not everything, just enough.</p>
+
+        <div id="today-enough-input-row" class="gratitude-input-row">
+          <input id="today-enough-input" class="search-input" type="text" placeholder="One thing that would make today enough...">
+          <button id="today-enough-add-btn" class="btn secondary">Add</button>
+        </div>
+
+        <div id="today-enough-list" class="gratitude-list"></div>
+
+        <div id="today-enough-done-state" class="today-enough-done hidden">
+          <p class="today-enough-done-title">Today is enough.</p>
+          <p class="today-enough-done-sub">You named what mattered and you did it. Rest in that.</p>
+        </div>
+
+        <button id="today-enough-save-btn" class="btn accent" disabled>Save today</button>
+        <button id="today-enough-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: Inversion — list of goals -->
+    <div id="inversion-list-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Inversion</p>
+        <p class="light-subtext">How would I guarantee failure? Then do the opposite.</p>
+
+        <div class="gratitude-input-row">
+          <input id="new-inversion-input" class="search-input" type="text" placeholder="What's the goal?">
+          <button id="new-inversion-btn" class="btn secondary">Add</button>
+        </div>
+
+        <div id="inversion-goals-list" class="problem-group"></div>
+
+        <button id="inversion-list-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: Inversion — one goal, pair each failure with its opposite -->
+    <div id="inversion-detail-screen" class="screen">
+      <div class="card glass">
+        <p id="inversion-detail-title" class="screen-title"></p>
+        <p id="inversion-progress" class="progress"></p>
+        <p id="inversion-completed-note" class="light-subtext hidden"></p>
+
+        <div id="inversion-pairs-list" class="inversion-pairs"></div>
+
+        <button id="inversion-add-pair-btn" class="btn secondary">Add a way to fail</button>
+
+        <div class="inversion-plan-block">
+          <p class="section-label">Game plan — do the opposite</p>
+          <div id="inversion-game-plan" class="inversion-plan"></div>
+        </div>
+
+        <button id="inversion-complete-btn" class="btn accent" disabled>Mark complete</button>
+        <button id="inversion-detail-back-btn" class="btn secondary">Back to Inversion</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: Task Breaker (RPM) — list of blocks -->
+    <div id="rpm-list-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">Task Breaker</p>
+        <p class="light-subtext">RPM — Results · Purpose · Massive Action.</p>
+        <p class="rpm-tagline">It's not about planning. It's about creating.</p>
+
+        <button id="rpm-new-btn" class="btn accent">New RPM block</button>
+
+        <div id="rpm-blocks-list" class="problem-group"></div>
+
+        <button id="rpm-list-back-btn" class="btn secondary">Back to Toolbox</button>
+      </div>
+    </div>
+
+    <!-- TOOLBOX: Task Breaker (RPM) — one block: Result -> Purpose -> Massive Action -->
+    <div id="rpm-detail-screen" class="screen">
+      <div class="card glass">
+        <p class="section-label screen-title">RPM block</p>
+
+        <!-- 1 · Result -->
+        <div class="rpm-step">
+          <p class="section-label rpm-step-label">1 · Result</p>
+          <p class="light-subtext">Be specific. Write and rewrite it until it really grabs you.</p>
+          <textarea id="rpm-result" class="answer-input rpm-short" placeholder="One specific outcome you could judge as done or not done"></textarea>
+        </div>
+
+        <!-- 2 · Purpose -->
+        <div class="rpm-step">
+          <p class="section-label rpm-step-label">2 · Purpose</p>
+          <p class="light-subtext">The powerful why — your emotional fuel. Some words change your state: <em>impact, love, contribution, making a difference, fun.</em></p>
+
+          <div id="rpm-reasons-list" class="gratitude-list"></div>
+          <div class="gratitude-input-row">
+            <input id="rpm-reason-input" class="search-input" type="text" placeholder="Why does this matter? (list 5–10)">
+            <button id="rpm-reason-add-btn" class="btn secondary">Add</button>
+          </div>
+
+          <div class="rpm-needs-block">
+            <p class="section-label">Which needs does this meet?</p>
+            <div id="rpm-needs" class="rpm-needs">
+              <button class="rpm-need-chip" data-need="certainty">Certainty</button>
+              <button class="rpm-need-chip" data-need="variety">Variety</button>
+              <button class="rpm-need-chip" data-need="significance">Significance</button>
+              <button class="rpm-need-chip" data-need="connection">Love/Connection</button>
+              <button class="rpm-need-chip" data-need="growth">Growth</button>
+              <button class="rpm-need-chip" data-need="contribution">Contribution</button>
+            </div>
+            <p id="rpm-drive-label" class="rpm-drive-label hidden"></p>
+          </div>
+
+          <textarea id="rpm-conviction" class="answer-input rpm-short" placeholder="I'm making this call and my outcome is to make them feel I am so in their corner… because that's who the hell I am."></textarea>
+        </div>
+
+        <!-- 3 · Massive Action Plan -->
+        <div class="rpm-step">
+          <p class="section-label rpm-step-label">3 · Massive Action Plan</p>
+
+          <p class="rpm-field-label">What's the simple core?</p>
+          <textarea id="rpm-core" class="answer-input rpm-short" placeholder="The simple core of this"></textarea>
+
+          <p class="rpm-field-label">What does "done" mean for this?</p>
+          <textarea id="rpm-done" class="answer-input rpm-short" placeholder="How you'll know it's actually done"></textarea>
+
+          <p class="rpm-field-label">Break it into the smallest parts</p>
+          <div id="rpm-tasks-list" class="rpm-tasks"></div>
+          <div class="gratitude-input-row">
+            <input id="rpm-task-input" class="search-input" type="text" placeholder="A small next action...">
+            <button id="rpm-task-add-btn" class="btn secondary">Add</button>
+          </div>
+
+          <div class="rpm-progress">
+            <div class="rpm-progress-track"><div id="rpm-progress-fill" class="rpm-progress-fill"></div></div>
+            <p id="rpm-progress-text" class="rpm-progress-text"></p>
+          </div>
+
+          <p class="rpm-field-label">Accelerate</p>
+          <textarea id="rpm-accelerate" class="answer-input rpm-short" placeholder="What would it take to get this done in fewer hours?"></textarea>
+        </div>
+
+        <button id="rpm-save-btn" class="btn accent">Save block</button>
+        <button id="rpm-detail-back-btn" class="btn secondary">Back to Task Breaker</button>
       </div>
     </div>
 
