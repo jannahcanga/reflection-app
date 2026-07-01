@@ -625,7 +625,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 
   const ratingGroup  = ['rating-calendar-screen', 'rate-today-screen', 'day-detail-screen'];
-  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen', 'problem-list-screen', 'problem-detail-screen', 'needs-screen', 'needs-type-screen', 'needs-entry-screen', 'needs-result-screen', 'needs-alignment-screen', 'needs-archive-screen'];
+  const toolboxGroup = ['toolbox-screen', 'want-list-screen', 'want-form-screen', 'gratitude-screen', 'problem-list-screen', 'problem-detail-screen', 'needs-screen', 'needs-type-screen', 'needs-entry-screen', 'needs-result-screen', 'needs-alignment-screen', 'needs-archive-screen', 'today-enough-screen', 'inversion-list-screen', 'inversion-detail-screen', 'rpm-list-screen', 'rpm-detail-screen'];
   let activeTab = 'tab-home';
   if (ratingGroup.includes(id))  activeTab = 'tab-rating';
   if (toolboxGroup.includes(id)) activeTab = 'tab-toolbox';
@@ -698,7 +698,7 @@ function showSavedToast(message) {
 // iOS wipes localStorage when a home-screen web app is deleted, so this is the
 // safety net — export before deleting/re-adding the icon, import after.
 
-const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems', 'myQuotes', 'needsEntries'];
+const BACKUP_KEYS = ['toolboxWants', 'lifeRatings', 'reflections', 'sayingReflections', 'gratitudeLists', 'toolboxProblems', 'myQuotes', 'needsEntries', 'todayEnough', 'inversionGoals', 'rpmBlocks'];
 
 function exportBackup() {
   const dump = {};
@@ -829,10 +829,13 @@ const METER = {
   REPEAT_WINDOW_HOURS: 24,  // repeat penalty resets after this; daily use always counts fresh
   BOOSTS: {                 // first-use boost per tool (points added, meter caps at 100)
     gratitude: 16,          // 20-things gratitude — pays out only when the list reaches 20
+    rpm: 14,                // Task Breaker (RPM) — most involved, strongest shift after gratitude
     problemSolver: 13,      // pays out only when a problem reaches 20 solutions
+    inversion: 12,          // effortful, produces a real plan (needs 3+ filled pairs)
     needsCalculator: 11,    // FUTURE tool — hook wired now, the tool comes later
     emotions: 10,
     lifeRating: 9,          // on saving a day's rating
+    todayEnough: 8,         // "what would make today enough?" — quick but clarifying
     wishlist: 7,            // "everything I could ever want" — on adding a want
     quotes: 5,              // on writing a quote entry
   },
@@ -1565,6 +1568,128 @@ function saveGratitudeList() {
 }
 
 
+// ── Toolbox: What would make today enough? ───────────────────────────────────────
+// A daily focusing ritual — name up to 3 needle-movers, check them off. One entry
+// per day (keyed by date); past days are kept. Persists on every change so checks
+// survive a reopen; the meter boost fires only on the explicit "Save today".
+
+const TODAY_ENOUGH_MAX = 3;
+const CHECK_ICON_SM = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+let todayEnoughItems = [];  // [{ text, done }]
+
+// YYYY-MM-DD in local time — the per-day key
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+function loadTodayEnoughMap() { return JSON.parse(localStorage.getItem('todayEnough') || '{}'); }
+function saveTodayEnoughMap(map) { localStorage.setItem('todayEnough', JSON.stringify(map)); }
+
+// Write the current in-memory items into today's slot, keeping past days intact
+function persistTodayEnough() {
+  const map = loadTodayEnoughMap();
+  map[todayKey()] = { items: todayEnoughItems.map(i => ({ text: i.text, done: !!i.done })), savedAt: Date.now() };
+  saveTodayEnoughMap(map);
+}
+
+function openTodayEnough() {
+  const map = loadTodayEnoughMap();
+  const entry = map[todayKey()];
+  todayEnoughItems = entry ? entry.items.map(i => ({ text: i.text, done: !!i.done })) : [];
+  document.getElementById('today-enough-input').value = '';
+  renderTodayEnough();
+  updateTodayEnoughState();
+  showScreen('today-enough-screen');
+}
+
+function renderTodayEnough(animateLast) {
+  const list = document.getElementById('today-enough-list');
+  list.innerHTML = '';
+
+  todayEnoughItems.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'gratitude-item check-item' + (item.done ? ' checked' : '');
+    if (animateLast && i === todayEnoughItems.length - 1) row.classList.add('item-enter');
+
+    const box = document.createElement('button');
+    box.className = 'check-box' + (item.done ? ' checked' : '');
+    box.title = item.done ? 'Uncheck' : 'Check off';
+    box.innerHTML = CHECK_ICON_SM;
+    box.addEventListener('click', () => toggleTodayEnoughItem(i));
+
+    const label = document.createElement('span');
+    label.className = 'check-item-text';
+    label.textContent = item.text;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'icon-btn';
+    removeBtn.title = 'Remove';
+    removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    removeBtn.addEventListener('click', () => removeTodayEnoughItem(i));
+
+    row.appendChild(box);
+    row.appendChild(label);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+function updateTodayEnoughState() {
+  const count = todayEnoughItems.length;
+  const full  = count >= TODAY_ENOUGH_MAX;
+
+  document.getElementById('today-enough-input').disabled   = full;
+  document.getElementById('today-enough-add-btn').disabled = full;
+  document.getElementById('today-enough-input').placeholder =
+    full ? 'That’s enough for one day.' : 'One thing that would make today enough...';
+
+  document.getElementById('today-enough-save-btn').disabled = count === 0;
+
+  const allDone = count > 0 && todayEnoughItems.every(i => i.done);
+  document.getElementById('today-enough-done-state').classList.toggle('hidden', !allDone);
+}
+
+function addTodayEnoughItem() {
+  const input = document.getElementById('today-enough-input');
+  const text  = input.value.trim();
+  if (!text || todayEnoughItems.length >= TODAY_ENOUGH_MAX) return;
+
+  todayEnoughItems.push({ text, done: false });
+  input.value = '';
+  persistTodayEnough();
+  renderTodayEnough(true);
+  updateTodayEnoughState();
+  input.focus();
+}
+
+function toggleTodayEnoughItem(i) {
+  todayEnoughItems[i].done = !todayEnoughItems[i].done;
+  persistTodayEnough();
+  renderTodayEnough();
+  updateTodayEnoughState();
+}
+
+function removeTodayEnoughItem(i) {
+  todayEnoughItems.splice(i, 1);
+  persistTodayEnough();
+  renderTodayEnough();
+  updateTodayEnoughState();
+}
+
+function saveTodayEnough() {
+  if (todayEnoughItems.length === 0) return;
+  persistTodayEnough();
+  // Defensive per spec — safe no-op if the meter isn't present
+  if (typeof applyMeterBoost === 'function') applyMeterBoost('todayEnough');
+  showScreen('toolbox-screen');
+  showSavedToast('Saved today');
+}
+
+
 // ── Toolbox: Problem Solver ──────────────────────────────────────────────────────
 // Each problem stays locked (can't be marked solved) until it has 20 solutions —
 // the lock is the point, it pushes past the first few obvious answers.
@@ -1839,6 +1964,526 @@ function solveProblem() {
   applyMeterBoost('problemSolver'); // only fires here, gated by the >=20 check above
   renderProblemDetail();
   showSavedToast('Marked solved');
+}
+
+
+// ── Toolbox: Inversion ───────────────────────────────────────────────────────────
+// Plan backwards from failure: for each way you'd guarantee failure, write the
+// opposite. The collected opposites become the game plan. List + detail like the
+// Problem Solver. Boost fires once on completion, gated by 3+ fully-filled pairs.
+
+const INVERSION_PAIRS_TO_COMPLETE = 3;
+
+let currentInversionId = null;
+
+function loadInversions() { return JSON.parse(localStorage.getItem('inversionGoals') || '[]'); }
+function saveInversions(list) { localStorage.setItem('inversionGoals', JSON.stringify(list)); }
+function findInversion(id) { return loadInversions().find(g => g.id === id); }
+
+// Both sides non-empty = a pair that "counts" toward completion / the game plan
+function inversionFilledPairs(goal) {
+  return goal.pairs.filter(p => p.fail.trim() && p.opposite.trim());
+}
+
+function openInversionList() {
+  document.getElementById('new-inversion-input').value = '';
+  buildInversionList();
+  showScreen('inversion-list-screen');
+}
+
+function buildInversionList() {
+  const goals = loadInversions();
+  const container = document.getElementById('inversion-goals-list');
+  container.innerHTML = '';
+
+  if (goals.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = 'No goals yet. What are you trying to pull off?';
+    container.appendChild(empty);
+    return;
+  }
+
+  [...goals].reverse().forEach(goal => {
+    const btn = document.createElement('button');
+    btn.className = 'problem-btn';
+
+    const title = document.createElement('span');
+    title.className = 'problem-btn-title';
+    title.textContent = goal.title;
+
+    const meta = document.createElement('span');
+    meta.className = 'problem-btn-meta' + (goal.completedAt ? ' solved' : '');
+    const filled = inversionFilledPairs(goal).length;
+    meta.textContent = goal.completedAt ? 'Complete' : filled + ' / ' + INVERSION_PAIRS_TO_COMPLETE;
+
+    btn.appendChild(title);
+    btn.appendChild(meta);
+    btn.addEventListener('click', () => openInversionDetail(goal.id));
+    container.appendChild(btn);
+  });
+}
+
+function createInversion() {
+  const input = document.getElementById('new-inversion-input');
+  const title = input.value.trim();
+  if (!title) return;
+
+  const goals = loadInversions();
+  const goal = {
+    id:          Date.now(),
+    title,
+    pairs:       [{ fail: '', opposite: '' }],  // start with one empty pair to fill in
+    createdAt:   Date.now(),
+    completedAt: null
+  };
+  goals.push(goal);
+  saveInversions(goals);
+
+  input.value = '';
+  openInversionDetail(goal.id);
+}
+
+function openInversionDetail(id) {
+  currentInversionId = id;
+  renderInversionDetail();
+  showScreen('inversion-detail-screen');
+}
+
+function renderInversionDetail() {
+  const goal = findInversion(currentInversionId);
+  if (!goal) { openInversionList(); return; }
+
+  setText('inversion-detail-title', goal.title);
+  renderInversionPairs(goal);
+  renderInversionGamePlan(goal);
+  updateInversionState(goal);
+}
+
+function renderInversionPairs(goal) {
+  const list = document.getElementById('inversion-pairs-list');
+  list.innerHTML = '';
+
+  goal.pairs.forEach((pair, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'inversion-pair';
+
+    const fields = document.createElement('div');
+    fields.className = 'inversion-pair-fields';
+
+    fields.appendChild(inversionField('If I wanted to fail…', 'fail', pair.fail, i, 'fail'));
+    fields.appendChild(inversionField('So instead', 'opposite', pair.opposite, i, 'opposite'));
+
+    const del = document.createElement('button');
+    del.className = 'btn secondary inversion-pair-delete';
+    del.textContent = 'Delete pair';
+    del.addEventListener('click', () => deleteInversionPair(i));
+
+    wrap.appendChild(fields);
+    wrap.appendChild(del);
+    list.appendChild(wrap);
+  });
+}
+
+// One labelled textarea; edits update the model + persist silently (no re-render,
+// so focus is kept), and refresh only the live parts (game plan + state)
+function inversionField(labelText, kind, value, index, prop) {
+  const field = document.createElement('div');
+  field.className = 'inversion-field';
+
+  const label = document.createElement('span');
+  label.className = 'inversion-field-label ' + kind;
+  label.textContent = labelText;
+
+  const ta = document.createElement('textarea');
+  ta.className = 'answer-input inversion-input';
+  ta.value = value;
+  ta.placeholder = kind === 'fail' ? 'e.g. never follow up' : 'e.g. follow up within a day';
+  ta.addEventListener('input', () => {
+    const goal = findInversion(currentInversionId);
+    if (!goal) return;
+    goal.pairs[index][prop] = ta.value;
+    const goals = loadInversions().map(g => g.id === goal.id ? goal : g);
+    saveInversions(goals);
+    renderInversionGamePlan(goal);
+    updateInversionState(goal);
+  });
+
+  field.appendChild(label);
+  field.appendChild(ta);
+  return field;
+}
+
+function addInversionPair() {
+  const goal = findInversion(currentInversionId);
+  if (!goal) return;
+  goal.pairs.push({ fail: '', opposite: '' });
+  saveInversions(loadInversions().map(g => g.id === goal.id ? goal : g));
+  renderInversionDetail();
+}
+
+function deleteInversionPair(index) {
+  const goal = findInversion(currentInversionId);
+  if (!goal) return;
+  goal.pairs.splice(index, 1);
+  if (goal.pairs.length === 0) goal.pairs.push({ fail: '', opposite: '' });
+  saveInversions(loadInversions().map(g => g.id === goal.id ? goal : g));
+  renderInversionDetail();
+}
+
+function renderInversionGamePlan(goal) {
+  const plan = document.getElementById('inversion-game-plan');
+  plan.innerHTML = '';
+
+  const filled = inversionFilledPairs(goal);
+  if (filled.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = 'Fill in a failure and its opposite — the opposites collect here as your plan.';
+    plan.appendChild(empty);
+    return;
+  }
+
+  filled.forEach(pair => {
+    const item = document.createElement('div');
+    item.className = 'inversion-plan-item';
+    item.textContent = pair.opposite.trim();
+    plan.appendChild(item);
+  });
+}
+
+function updateInversionState(goal) {
+  const filled = inversionFilledPairs(goal).length;
+  const completeBtn = document.getElementById('inversion-complete-btn');
+  const note = document.getElementById('inversion-completed-note');
+
+  if (goal.completedAt) {
+    setText('inversion-progress', filled + ' guideline' + (filled === 1 ? '' : 's') + ' in your plan');
+    completeBtn.classList.add('hidden');
+    note.textContent = 'Completed ' + formatDate(goal.completedAt) + ' — refine it anytime.';
+    note.classList.remove('hidden');
+  } else {
+    setText('inversion-progress',
+      filled >= INVERSION_PAIRS_TO_COMPLETE
+        ? filled + ' filled pairs — ready to complete'
+        : filled + ' / ' + INVERSION_PAIRS_TO_COMPLETE + ' filled pairs to complete');
+    completeBtn.classList.remove('hidden');
+    completeBtn.disabled = filled < INVERSION_PAIRS_TO_COMPLETE;
+    note.classList.add('hidden');
+  }
+}
+
+function completeInversion() {
+  const goal = findInversion(currentInversionId);
+  if (!goal || goal.completedAt) return;
+  if (inversionFilledPairs(goal).length < INVERSION_PAIRS_TO_COMPLETE) return;
+
+  goal.completedAt = Date.now();
+  saveInversions(loadInversions().map(g => g.id === goal.id ? goal : g));
+  // Defensive per spec — safe no-op if the meter isn't present
+  if (typeof applyMeterBoost === 'function') applyMeterBoost('inversion');
+  renderInversionDetail();
+  showSavedToast('Game plan locked in');
+}
+
+
+// ── Toolbox: Task Breaker (RPM) ──────────────────────────────────────────────────
+// Tony Robbins' Rapid Planning Method, in order: Result → Purpose → Massive Action.
+// Every field autosaves silently so progress survives a reopen; the "Save block"
+// button fires the meter boost, gated (Result + a reason + MAP core/done + a task).
+
+let currentRpmId = null;
+
+function loadRpmBlocks() { return JSON.parse(localStorage.getItem('rpmBlocks') || '[]'); }
+function saveRpmBlocks(list) { localStorage.setItem('rpmBlocks', JSON.stringify(list)); }
+function findRpmBlock(id) { return loadRpmBlocks().find(b => b.id === id); }
+
+function emptyRpmBlock() {
+  return {
+    id:         Date.now(),
+    createdAt:  Date.now(),
+    result:     '',
+    reasons:    [],
+    needs:      [],          // active need keys, e.g. ['certainty','growth']
+    conviction: '',
+    core:       '',
+    done:       '',
+    tasks:      [],          // [{ text, estimate, checked }]
+    accelerate: '',
+    savedAt:    null
+  };
+}
+
+// Write the current block back into the list (source of truth is localStorage)
+function commitRpmBlock(block) {
+  saveRpmBlocks(loadRpmBlocks().map(b => b.id === block.id ? block : b));
+}
+
+// The gate that pays out the boost — a genuinely worked-through block
+function rpmGateMet(b) {
+  const hasReason = b.reasons.some(r => r.trim());
+  const hasTask   = b.tasks.some(t => t.text.trim());
+  return !!b.result.trim() && hasReason && !!b.core.trim() && !!b.done.trim() && hasTask;
+}
+
+function openRpmList() {
+  buildRpmList();
+  showScreen('rpm-list-screen');
+}
+
+function buildRpmList() {
+  const blocks = loadRpmBlocks();
+  const container = document.getElementById('rpm-blocks-list');
+  container.innerHTML = '';
+
+  if (blocks.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-message';
+    empty.textContent = 'No blocks yet. Start one — what result are you after?';
+    container.appendChild(empty);
+    return;
+  }
+
+  [...blocks].reverse().forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'problem-btn';
+
+    const title = document.createElement('span');
+    title.className = 'problem-btn-title';
+    title.textContent = block.result.trim() || 'Untitled block';
+
+    const total = block.tasks.length;
+    const doneCount = block.tasks.filter(t => t.checked).length;
+    const meta = document.createElement('span');
+    meta.className = 'problem-btn-meta' + (total > 0 && doneCount === total ? ' solved' : '');
+    meta.textContent = total > 0 ? doneCount + ' / ' + total + ' done' : 'Draft';
+
+    btn.appendChild(title);
+    btn.appendChild(meta);
+    btn.addEventListener('click', () => openRpmDetail(block.id));
+    container.appendChild(btn);
+  });
+}
+
+function createRpmBlock() {
+  const block = emptyRpmBlock();
+  const blocks = loadRpmBlocks();
+  blocks.push(block);
+  saveRpmBlocks(blocks);
+  openRpmDetail(block.id);
+}
+
+function openRpmDetail(id) {
+  currentRpmId = id;
+  const block = findRpmBlock(id);
+  if (!block) { openRpmList(); return; }
+
+  // Populate the static fields from the block
+  document.getElementById('rpm-result').value     = block.result;
+  document.getElementById('rpm-conviction').value = block.conviction;
+  document.getElementById('rpm-core').value       = block.core;
+  document.getElementById('rpm-done').value       = block.done;
+  document.getElementById('rpm-accelerate').value = block.accelerate;
+  document.getElementById('rpm-reason-input').value = '';
+  document.getElementById('rpm-task-input').value   = '';
+
+  renderRpmReasons(block);
+  renderRpmNeeds(block);
+  renderRpmTasks(block);
+  updateRpmDriveLabel(block);
+  updateRpmProgress(block);
+
+  showScreen('rpm-detail-screen');
+}
+
+// Update one simple field on the current block and persist (no re-render)
+function updateRpmField(prop, value) {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block[prop] = value;
+  commitRpmBlock(block);
+}
+
+// — Purpose: reasons —
+function renderRpmReasons(block) {
+  const list = document.getElementById('rpm-reasons-list');
+  list.innerHTML = '';
+
+  block.reasons.forEach((text, i) => {
+    const row = document.createElement('div');
+    row.className = 'gratitude-item';
+
+    const num = document.createElement('span');
+    num.className = 'gratitude-item-num';
+    num.textContent = (i + 1) + '.';
+
+    const label = document.createElement('span');
+    label.className = 'gratitude-item-text';
+    label.textContent = text;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'icon-btn';
+    removeBtn.title = 'Remove';
+    removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    removeBtn.addEventListener('click', () => removeRpmReason(i));
+
+    row.appendChild(num);
+    row.appendChild(label);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+function addRpmReason() {
+  const input = document.getElementById('rpm-reason-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.reasons.push(text);
+  commitRpmBlock(block);
+  input.value = '';
+  renderRpmReasons(block);
+  input.focus();
+}
+
+function removeRpmReason(i) {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.reasons.splice(i, 1);
+  commitRpmBlock(block);
+  renderRpmReasons(block);
+}
+
+// — Purpose: needs link + live drive label —
+function renderRpmNeeds(block) {
+  document.querySelectorAll('#rpm-needs .rpm-need-chip').forEach(chip => {
+    chip.classList.toggle('active', block.needs.includes(chip.dataset.need));
+  });
+}
+
+function toggleRpmNeed(key) {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  const idx = block.needs.indexOf(key);
+  if (idx === -1) block.needs.push(key); else block.needs.splice(idx, 1);
+  commitRpmBlock(block);
+  renderRpmNeeds(block);
+  updateRpmDriveLabel(block);
+}
+
+function updateRpmDriveLabel(block) {
+  const label = document.getElementById('rpm-drive-label');
+  const n = block.needs.length;
+  if (n === 0) { label.classList.add('hidden'); return; }
+  label.classList.remove('hidden');
+  label.textContent = n === 1 ? 'Interest' : n === 2 ? 'Drive' : 'You’re going to do it.';
+}
+
+// — MAP: tasks + progress —
+function renderRpmTasks(block) {
+  const list = document.getElementById('rpm-tasks-list');
+  list.innerHTML = '';
+
+  block.tasks.forEach((task, i) => {
+    const row = document.createElement('div');
+    row.className = 'rpm-task' + (task.checked ? ' checked' : '');
+
+    const box = document.createElement('button');
+    box.className = 'check-box' + (task.checked ? ' checked' : '');
+    box.title = task.checked ? 'Uncheck' : 'Check off';
+    box.innerHTML = CHECK_ICON_SM;
+    box.addEventListener('click', () => toggleRpmTask(i));
+
+    const text = document.createElement('input');
+    text.className = 'rpm-task-text';
+    text.type = 'text';
+    text.value = task.text;
+    text.placeholder = 'Task';
+    text.addEventListener('input', () => {
+      const b = findRpmBlock(currentRpmId);
+      if (!b) return;
+      b.tasks[i].text = text.value;
+      commitRpmBlock(b);
+    });
+
+    const est = document.createElement('input');
+    est.className = 'rpm-task-est';
+    est.type = 'text';
+    est.value = task.estimate;
+    est.placeholder = 'Est.';
+    est.addEventListener('input', () => {
+      const b = findRpmBlock(currentRpmId);
+      if (!b) return;
+      b.tasks[i].estimate = est.value;
+      commitRpmBlock(b);
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'icon-btn';
+    removeBtn.title = 'Remove';
+    removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    removeBtn.addEventListener('click', () => removeRpmTask(i));
+
+    row.appendChild(box);
+    row.appendChild(text);
+    row.appendChild(est);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+function addRpmTask() {
+  const input = document.getElementById('rpm-task-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.tasks.push({ text, estimate: '', checked: false });
+  commitRpmBlock(block);
+  input.value = '';
+  renderRpmTasks(block);
+  updateRpmProgress(block);
+  input.focus();
+}
+
+function toggleRpmTask(i) {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.tasks[i].checked = !block.tasks[i].checked;
+  commitRpmBlock(block);
+  renderRpmTasks(block);
+  updateRpmProgress(block);
+}
+
+function removeRpmTask(i) {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.tasks.splice(i, 1);
+  commitRpmBlock(block);
+  renderRpmTasks(block);
+  updateRpmProgress(block);
+}
+
+function updateRpmProgress(block) {
+  const total = block.tasks.length;
+  const done  = block.tasks.filter(t => t.checked).length;
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('rpm-progress-fill').style.width = pct + '%';
+  setText('rpm-progress-text', total > 0 ? done + ' / ' + total + ' done' : 'No tasks yet');
+}
+
+function saveRpmBlock() {
+  const block = findRpmBlock(currentRpmId);
+  if (!block) return;
+  block.savedAt = Date.now();
+  commitRpmBlock(block);
+
+  // Defensive per spec — boost only when the block is genuinely worked through
+  if (rpmGateMet(block) && typeof applyMeterBoost === 'function') applyMeterBoost('rpm');
+
+  openRpmList();
+  showSavedToast(rpmGateMet(block) ? 'Block saved' : 'Draft saved');
 }
 
 
@@ -3143,6 +3788,66 @@ document.getElementById('problem-solution-input').addEventListener('keydown', e 
 
 document.getElementById('problem-solve-btn').addEventListener('click', solveProblem);
 document.getElementById('problem-detail-back-btn').addEventListener('click', openProblemList);
+
+
+// ── What would make today enough? button wiring ───────────────────────────────
+
+document.getElementById('open-today-enough-btn').addEventListener('click', openTodayEnough);
+document.getElementById('today-enough-add-btn').addEventListener('click', addTodayEnoughItem);
+document.getElementById('today-enough-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodayEnoughItem();
+});
+document.getElementById('today-enough-save-btn').addEventListener('click', saveTodayEnough);
+document.getElementById('today-enough-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
+
+
+// ── Inversion button wiring ───────────────────────────────────────────────────
+
+document.getElementById('open-inversion-btn').addEventListener('click', openInversionList);
+document.getElementById('new-inversion-btn').addEventListener('click', createInversion);
+document.getElementById('new-inversion-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createInversion();
+});
+document.getElementById('inversion-list-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
+document.getElementById('inversion-add-pair-btn').addEventListener('click', addInversionPair);
+document.getElementById('inversion-complete-btn').addEventListener('click', completeInversion);
+document.getElementById('inversion-detail-back-btn').addEventListener('click', openInversionList);
+
+
+// ── Task Breaker (RPM) button wiring ──────────────────────────────────────────
+
+document.getElementById('open-rpm-btn').addEventListener('click', openRpmList);
+document.getElementById('rpm-new-btn').addEventListener('click', createRpmBlock);
+document.getElementById('rpm-list-back-btn').addEventListener('click', () => {
+  showScreen('toolbox-screen');
+});
+document.getElementById('rpm-detail-back-btn').addEventListener('click', openRpmList);
+document.getElementById('rpm-save-btn').addEventListener('click', saveRpmBlock);
+
+// Static field autosave (silent — no re-render, so focus is kept)
+document.getElementById('rpm-result').addEventListener('input', e => updateRpmField('result', e.target.value));
+document.getElementById('rpm-conviction').addEventListener('input', e => updateRpmField('conviction', e.target.value));
+document.getElementById('rpm-core').addEventListener('input', e => updateRpmField('core', e.target.value));
+document.getElementById('rpm-done').addEventListener('input', e => updateRpmField('done', e.target.value));
+document.getElementById('rpm-accelerate').addEventListener('input', e => updateRpmField('accelerate', e.target.value));
+
+document.getElementById('rpm-reason-add-btn').addEventListener('click', addRpmReason);
+document.getElementById('rpm-reason-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addRpmReason();
+});
+
+document.getElementById('rpm-task-add-btn').addEventListener('click', addRpmTask);
+document.getElementById('rpm-task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addRpmTask();
+});
+
+document.querySelectorAll('#rpm-needs .rpm-need-chip').forEach(chip => {
+  chip.addEventListener('click', () => toggleRpmNeed(chip.dataset.need));
+});
 
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
