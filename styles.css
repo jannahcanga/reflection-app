@@ -1426,6 +1426,308 @@ body::before {
   animation: itemEnter 0.22s var(--ease-out);
 }
 
+/* ── Shared: checkbox (Today-Enough, RPM tasks) ─────────── */
+.check-box {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1.5px solid var(--glass-border);
+  background: var(--content-fill);
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.check-box.checked {
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  border-color: transparent;
+  color: #fff;
+}
+
+.check-item-text {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--text-soft);
+  transition: color 0.15s ease-out;
+}
+
+.check-item.checked .check-item-text {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+/* ── Today is enough — calm completion state ────────────── */
+.today-enough-done {
+  text-align: center;
+  padding: 20px 16px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border);
+  animation: itemEnter 0.3s var(--ease-out);
+}
+
+.today-enough-done-title {
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.today-enough-done-sub {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ── Inversion — paired failure/opposite rows ───────────── */
+.inversion-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inversion-pair {
+  position: relative;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--content-fill);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .inversion-pair { background: var(--bg-base); }
+}
+
+/* Stacked on mobile; two columns once there's room (spec: two-col where it fits) */
+.inversion-pair-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 520px) {
+  .inversion-pair-fields { grid-template-columns: 1fr 1fr; }
+}
+
+.inversion-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inversion-field-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.inversion-field-label.fail { color: var(--danger); }
+.inversion-field-label.opposite { color: var(--good); }
+
+.inversion-input {
+  min-height: 60px;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+}
+
+.inversion-pair-delete {
+  margin-top: 10px;
+}
+
+.inversion-plan-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inversion-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inversion-plan-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border);
+  font-size: 0.95rem;
+  color: var(--text-soft);
+  animation: itemEnter 0.22s var(--ease-out);
+}
+
+.inversion-plan-item::before {
+  content: '→';
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Task Breaker (RPM) ──────────────────────────────────── */
+.rpm-tagline {
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.rpm-step {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+
+.rpm-step:first-of-type {
+  padding-top: 0;
+  border-top: none;
+}
+
+.rpm-step-label {
+  font-size: 0.9rem;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+
+.rpm-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.rpm-short {
+  min-height: 64px;
+}
+
+.rpm-needs-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rpm-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rpm-need-chip {
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border);
+  background: var(--content-fill);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.rpm-need-chip.active {
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  border-color: transparent;
+  color: #fff;
+}
+
+.rpm-drive-label {
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.rpm-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rpm-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--content-fill);
+  border: 1px solid var(--glass-border);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .rpm-task { background: var(--bg-base); }
+}
+
+.rpm-task-text {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  color: var(--text);
+  outline: none;
+}
+
+.rpm-task.checked .rpm-task-text {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.rpm-task-est {
+  width: 58px;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  background: var(--glass-fill);
+  padding: 5px 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  text-align: center;
+  outline: none;
+}
+
+.rpm-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rpm-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--glass-border);
+  overflow: hidden;
+}
+
+.rpm-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--accent-light), var(--accent));
+  transition: width 0.25s var(--ease-out);
+}
+
+.rpm-progress-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 /* ── Shared: quiet "saved" flourish ─────────────────────── */
 @keyframes checkBloom {
   0%   { transform: scale(0.5); opacity: 0; }
